@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud & K8s Study Command Center — AZ-104 · AZ-305 · CKA (Cloudflare D1 + R2 + AI)</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          },
+          colors: {
+            azure: { 500: '#0078D4', 600: '#005A9E' },
+            k8s: { 500: '#326CE5', 600: '#254FAD' },
+            cf: { 500: '#F38020', 600: '#D9650B' }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 9999px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+    .animate-pulse-soft { animation: pulse-soft 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-sky-500 selection:text-white transition-colors duration-200">
+
+  <!-- TOP NAVIGATION & GLOBAL COMMAND HEADER -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <!-- Brand + Active Sprint Pill -->
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-500 via-indigo-600 to-amber-500 p-[1px] shrink-0 shadow-lg shadow-sky-500/10">
+          <div class="w-full h-full bg-slate-950 rounded-[11px] flex items-center justify-center">
+            <i data-lucide="terminal" class="w-5 h-5 text-sky-400"></i>
+          </div>
+        </div>
+        <div class="truncate">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm sm:text-base font-bold tracking-tight text-white truncate">Cloud &amp; K8s Study Command</h1>
+            <span class="hidden md:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+              Oct 2026 Sprint
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 truncate">AZ-104 &amp; AZ-305 This Month · Udemy CKA on 3-Node Cluster</p>
+        </div>
+      </div>
+
+      <!-- Quick Omni-Search Trigger -->
+      <div class="flex-1 max-w-md hidden sm:block">
+        <button id="btnTopSearch" type="button" class="w-full flex items-center justify-between px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800/90 border border-slate-800 text-xs text-slate-400 transition group">
+          <span class="flex items-center gap-2 truncate">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Search notes, `kubectl`/`az` commands, or docs...</span>
+          </span>
+          <kbd class="px-1.5 py-0.5 text-[10px] font-mono bg-slate-800 text-slate-300 rounded border border-slate-700">Ctrl K</kbd>
+        </button>
+      </div>
+
+      <!-- Right Action Controls -->
+      <div class="flex items-center gap-2">
+        <!-- Mini Active Timer Pill -->
+        <button id="btnHeaderTimer" type="button" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500/50 text-xs font-mono transition" title="Jump to Study Timer">
+          <span id="headerTimerDot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <span id="headerTimerDisplay" class="font-semibold text-slate-200">25:00</span>
+        </button>
+
+        <!-- Add Course Quick Button -->
+        <button id="btnOpenAddCourse" type="button" class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+          <span>Add Course</span>
+        </button>
+
+        <!-- Cloudflare Edge Status Badge -->
+        <button id="btnEdgeStatus" type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-medium transition" title="Cloudflare Pages + D1 + R2 + Workers AI">
+          <i data-lucide="cloud-lightning" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span id="edgeStatusLabel" class="hidden sm:inline">CF D1·R2·AI</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- PRIMARY NAVIGATION TABS -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-slate-900/80 overflow-x-auto custom-scroll">
+      <nav class="flex items-center gap-1 py-1.5 min-w-max" aria-label="Main Navigation">
+        <button type="button" data-nav="overview" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-sky-500/15 text-sky-300 border border-sky-500/30">
+          <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+          <span>1. Command &amp; Decisions</span>
+        </button>
+        <button type="button" data-nav="hours" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
+          <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+          <span>2. Hours &amp; Timer</span>
+        </button>
+        <button type="button" data-nav="challenges" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
+          <i data-lucide="flame" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>3. Daily Labs &amp; 3-Node K8s</span>
+          <span id="navBadgeChallenges" class="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500/20 text-amber-300">12</span>
+        </button>
+        <button type="button" data-nav="notes" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
+          <i data-lucide="notebook-pen" class="w-3.5 h-3.5"></i>
+          <span>4. Smart Notes &amp; R2 Vault</span>
+        </button>
+        <button type="button" data-nav="progress" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
+          <i data-lucide="gauge" class="w-3.5 h-3.5"></i>
+          <span>5. Progress &amp; Courses</span>
+        </button>
+        <button type="button" data-nav="search" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
+          <i data-lucide="search-code" class="w-3.5 h-3.5"></i>
+          <span>6. Unified Docs &amp; Note Search</span>
+        </button>
+        <button type="button" data-nav="cloudflare" class="nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent">
+          <i data-lucide="server-cog" class="w-3.5 h-3.5 text-orange-400"></i>
+          <span>7. Cloudflare D1·R2·AI Kit</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 1: COMMAND OVERVIEW & "WHAT I'VE DECIDED" PACT                   -->
+    <!-- ===================================================================== -->
+    <section id="view-overview" class="view-section space-y-6">
+
+      <!-- NORTH STAR PACT BANNER: "WHAT I HAVE DECIDED" -->
+      <div class="rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950/80 border border-slate-800 p-5 sm:p-6 shadow-xl relative overflow-hidden">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+          <div class="space-y-1">
+            <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sky-400">
+              <i data-lucide="compass" class="w-4 h-4"></i>
+              <span>My North-Star Commitment Charter (October 2026)</span>
+            </div>
+            <h2 class="text-lg sm:text-xl font-bold text-white">What I Have Decided — Stay Locked In</h2>
+            <p class="text-xs sm:text-sm text-slate-300 max-w-3xl">
+              Conquer <strong class="text-sky-300">AZ-104</strong> and <strong class="text-indigo-300">AZ-305</strong> before October 31, 2026 while building unstoppable <strong class="text-emerald-300">CKA</strong> muscle memory on my 3-node <code class="text-xs bg-slate-800 px-1.5 py-0.5 rounded">kubeadm</code> cluster.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button id="btnAddDecisionModal" type="button" class="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-semibold text-xs flex items-center gap-1.5 transition shadow-lg shadow-sky-500/20">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Lock New Decision</span>
+            </button>
+            <button id="btnQuickSpinChallenge" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-medium text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Daily Lab Roulette</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Pinned Decisions Grid -->
+        <div id="decisionsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-4"></div>
+      </div>
+
+      <!-- KPI METRIC STRIP -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Total Hours Put In</span>
+            <i data-lucide="timer" class="w-4 h-4 text-sky-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiTotalHours" class="text-2xl sm:text-3xl font-extrabold text-white">0.0</span>
+            <span id="kpiTargetHoursLabel" class="text-xs text-slate-400">/ 120h target</span>
+          </div>
+          <div class="mt-2 text-[11px] text-emerald-400 flex items-center gap-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5"></i>
+            <span id="kpiPaceText">2.8h/day needed for Oct sprint</span>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Hands-On Labs Done</span>
+            <i data-lucide="terminal-square" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiCompletedLabs" class="text-2xl sm:text-3xl font-extrabold text-white">0 / 12</span>
+            <span class="text-xs text-slate-400">curated labs</span>
+          </div>
+          <div class="mt-2 text-[11px] text-amber-300 flex items-center gap-1">
+            <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+            <span id="kpiLabTasksPct">0% sub-tasks verified</span>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Weighted Exam Readiness</span>
+            <i data-lucide="shield-check" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiReadinessAvg" class="text-2xl sm:text-3xl font-extrabold text-white">68%</span>
+            <span class="text-xs text-slate-400">across active tracks</span>
+          </div>
+          <div class="mt-2 text-[11px] text-indigo-300 flex items-center gap-1">
+            <i data-lucide="award" class="w-3.5 h-3.5"></i>
+            <span>Pass bar: 700/1000 (AZ) · 66% (CKA)</span>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Notes &amp; R2 Assets</span>
+            <i data-lucide="database" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="mt-2 flex items-baseline gap-2">
+            <span id="kpiNotesCount" class="text-2xl sm:text-3xl font-extrabold text-white">0</span>
+            <span id="kpiR2Count" class="text-xs text-slate-400">notes · 3 R2 objects</span>
+          </div>
+          <div class="mt-2 text-[11px] text-sky-300 flex items-center gap-1">
+            <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+            <span>Workers AI BGE indexed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTIVE COURSES & 3-NODE K8S CLUSTER STATUS -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left 2 Cols: Course Progress Cards -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold uppercase tracking-wider text-slate-300">Active Certification Tracks</h3>
+              <p class="text-xs text-slate-400">Click any track to filter labs, notes, or log study hours</p>
+            </div>
+            <button id="btnOverviewAddCourse" type="button" class="text-xs font-semibold text-sky-400 hover:text-sky-300 flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+              <span>Add Another Course</span>
+            </button>
+          </div>
+          <div id="overviewCoursesList" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+        </div>
+
+        <!-- Right Col: Dedicated 3-Node K8s Cluster Monitor & Quick Commands -->
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5 flex flex-col justify-between space-y-4">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                3-Node K8s Lab Cluster
+              </span>
+              <select id="clusterSimMode" aria-label="Cluster State Mode" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-300">
+                <option value="healthy">State: All 3 Nodes Ready (v1.31.1)</option>
+                <option value="drill-wk2">Drill: worker-node-02 NotReady</option>
+                <option value="drill-etcd">Drill: etcd Snapshot &amp; Restore</option>
+                <option value="drill-upgrade">Drill: kubeadm Upgrade v1.32</option>
+              </select>
+            </div>
+            <p class="text-xs text-slate-400 mt-1">Matches official Kubernetes docs (`kubeadm` 1 control-plane + 2 workers).</p>
+
+            <!-- 3 Nodes Topology Cards -->
+            <div id="clusterNodesContainer" class="mt-3 space-y-2.5"></div>
+          </div>
+
+          <!-- Quick Copy Verification Snippet for Selected Mode -->
+          <div class="pt-3 border-t border-slate-800">
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+              <span>Quick Cluster Verification CLI</span>
+              <button id="btnCopyClusterCli" type="button" class="text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1">
+                <i data-lucide="copy" class="w-3 h-3"></i>
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre id="clusterQuickCli" class="bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-[11px] text-emerald-300 font-mono overflow-x-auto">kubectl get nodes -o wide &amp;&amp; kubectl get pods -A</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANALYTICS CHARTS & TODAY'S SPOTLIGHT LAB -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-sm font-bold text-white">Hours Logged vs Target</h3>
+              <p class="text-xs text-slate-400">Real-time breakdown across courses</p>
+            </div>
+            <button type="button" data-goto="hours" class="text-xs text-sky-400 hover:underline">Log +</button>
+          </div>
+          <div class="relative h-60">
+            <canvas id="chartHoursByCourse"></canvas>
+          </div>
+        </div>
+
+        <div class="rounded-2xl bg-slate-900/90 border border-slate-800 p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <h3 class="text-sm font-bold text-white">Domain Readiness Profile</h3>
+              <p class="text-xs text-slate-400">Weighted mastery across exam domains</p>
+            </div>
+            <select id="chartDomainCourseSelect" aria-label="Select course for domain chart" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-300"></select>
+          </div>
+          <div class="relative h-60">
+            <canvas id="chartDomainMastery"></canvas>
+          </div>
+        </div>
+
+        <!-- Today's Recommended Hands-On Exercise -->
+        <div class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900/90 border border-amber-500/30 p-5 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                Daily Hands-On Spotlight
+              </span>
+              <button id="btnNextSpotlight" type="button" class="text-xs text-slate-400 hover:text-white flex items-center gap-1" title="Cycle to next challenge">
+                <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                <span>Next</span>
+              </button>
+            </div>
+            <div id="spotlightCardBody" class="mt-3 space-y-2"></div>
+          </div>
+          <div class="pt-4 mt-4 border-t border-slate-800 flex items-center justify-between gap-2">
+            <button id="btnOpenSpotlightLab" type="button" class="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs transition flex items-center justify-center gap-1.5">
+              <i data-lucide="play" class="w-3.5 h-3.5"></i>
+              <span>Launch Lab Checklist &amp; CLI</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 2: HOURS CALCULATOR & POMODORO / DEEP-WORK STUDIO                -->
+    <!-- ===================================================================== -->
+    <section id="view-hours" class="view-section hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Live Study Timer & Auto-Logger -->
+        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6 flex flex-col justify-between space-y-5">
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Live Focus &amp; Lab Timer</span>
+              <span id="timerModeBadge" class="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-300">25m Sprint</span>
+            </div>
+            <div class="my-6 text-center">
+              <div id="mainTimerDisplay" class="text-5xl sm:text-6xl font-mono font-extrabold tracking-tight text-white">25:00</div>
+              <p id="timerSubStatus" class="text-xs text-slate-400 mt-2">Ready to log toward your October certification sprint</p>
+            </div>
+
+            <!-- Preset Durations -->
+            <div class="grid grid-cols-3 gap-2 mb-4">
+              <button type="button" data-timer-mins="25" class="timer-preset px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700">25m Pomodoro</button>
+              <button type="button" data-timer-mins="50" class="timer-preset px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-xs font-medium text-slate-300 border border-slate-800">50m Deep Lab</button>
+              <button type="button" data-timer-mins="90" class="timer-preset px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-xs font-medium text-slate-300 border border-slate-800">90m Mock Sim</button>
+            </div>
+
+            <div class="space-y-2">
+              <label class="block text-xs text-slate-400">Assign Timer Session To Course</label>
+              <select id="timerCourseSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 pt-2">
+            <button id="btnTimerStartPause" type="button" class="col-span-2 py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span id="btnTimerStartLabel">Start Session</span>
+            </button>
+            <button id="btnTimerReset" type="button" class="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition">
+              Reset
+            </button>
+          </div>
+          <button id="btnTimerFinishLog" type="button" class="w-full py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 font-semibold text-xs transition">
+            Log Elapsed Time Now into D1 Logbook
+          </button>
+        </div>
+
+        <!-- Manual Session Logger + Cloudflare AI Reflection Enhancer -->
+        <div class="lg:col-span-2 rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-white">Log Study Hours &amp; Calculate Velocity</h3>
+              <p class="text-xs text-slate-400">Every session updates your course totals, October daily burn-down, and D1 `study_logs` table</p>
+            </div>
+            <button id="btnAiSessionTakeaway" type="button" class="px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-semibold flex items-center gap-1.5 self-start">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Workers AI: Synthesize Session Takeaway</span>
+            </button>
+          </div>
+
+          <form id="formLogHours" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Course / Certification</label>
+              <select id="logCourseId" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Exam Domain Covered</label>
+              <select id="logDomainName" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Activity Type</label>
+              <select id="logActivityType" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+                <option value="Hands-On Lab (3-Node K8s / Azure Portal)">Hands-On Lab (3-Node K8s / Azure Portal)</option>
+                <option value="Udemy Video Course & Demos">Udemy Video Course &amp; Demos</option>
+                <option value="Architecture Case Study (AZ-305)">Architecture Case Study (AZ-305)</option>
+                <option value="Official Docs & Study Guide Review">Official Docs &amp; Study Guide Review</option>
+                <option value="Timed Mock Exam / Killer.sh Simulator">Timed Mock Exam / Killer.sh Simulator</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Hours Put In</label>
+                <input id="logHoursInput" type="number" step="0.25" min="0.25" max="16" value="1.5" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-300 mb-1">Date</label>
+                <input id="logDateInput" type="date" value="2026-10-15" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+              </div>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-slate-300 mb-1">What did you build, break, or learn? (Optional Workers AI input)</label>
+              <textarea id="logReflectionInput" rows="2" placeholder="e.g., Configured VNet peering with service chaining on AZ-104 Lab 04, and practiced etcdctl snapshot save/restore on cp-node-01." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"></textarea>
+            </div>
+            <div id="aiTakeawayPreviewBox" class="sm:col-span-2 hidden rounded-xl bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-200"></div>
+            <div class="sm:col-span-2 flex items-center justify-end gap-3">
+              <button type="submit" class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-sky-500/20">
+                <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                <span>Save Study Session &amp; Recalculate Hours</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- COURSE HOUR CALCULATOR SUMMARY CARDS + LOG HISTORY TABLE -->
+      <div id="hoursSummaryCards" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 class="text-sm font-bold text-white">Logged Study Sessions (D1 `study_logs`)</h3>
+            <p class="text-xs text-slate-400">Complete audit trail of hours invested across AZ-104, AZ-305, CKA, and custom courses</p>
+          </div>
+          <select id="filterLogsCourse" aria-label="Filter study logs by course" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200">
+            <option value="all">All Courses</option>
+          </select>
+        </div>
+        <div class="overflow-x-auto custom-scroll">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400 uppercase text-[11px]">
+                <th class="py-2.5 px-3">Date</th>
+                <th class="py-2.5 px-3">Course</th>
+                <th class="py-2.5 px-3">Domain</th>
+                <th class="py-2.5 px-3">Activity</th>
+                <th class="py-2.5 px-3">Reflection &amp; AI Takeaway</th>
+                <th class="py-2.5 px-3 text-right">Hours</th>
+                <th class="py-2.5 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="studyLogsTableBody" class="divide-y divide-slate-800/70"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 3: DAILY CHALLENGES & HANDS-ON EXERCISES (AZ-104, AZ-305, CKA)   -->
+    <!-- ===================================================================== -->
+    <section id="view-challenges" class="view-section hidden space-y-6">
+      <!-- Top Filter & AI Challenge Generator Bar -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-400">
+            <i data-lucide="flame" class="w-4 h-4"></i>
+            <span>Internet-Curated Hands-On Lab Workbench</span>
+          </div>
+          <h2 class="text-lg font-bold text-white">Best Real-World Exercises for AZ-104, AZ-305 &amp; 3-Node CKA</h2>
+          <p class="text-xs text-slate-400">Sourced from official Microsoft Learning GitHub Labs, AZ-305 Architect Case Studies, Kubernetes.io Tasks, and Killer.sh/KodeKloud CKA scenarios.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <select id="filterChallengeCourse" aria-label="Filter challenges by course" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+            <option value="all">All Tracks (AZ-104 + AZ-305 + CKA)</option>
+          </select>
+          <select id="filterChallengeStatus" aria-label="Filter challenges by completion status" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-200">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending Only</option>
+            <option value="completed">Completed Only</option>
+          </select>
+          <button id="btnAiGenerateLab" type="button" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="wand-sparkles" class="w-3.5 h-3.5"></i>
+            <span>AI: Generate Weak-Spot Lab</span>
+          </button>
+          <button id="btnOpenCustomLabModal" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Custom Exercise</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Challenges Split View: List on Left, Interactive Lab Workbench on Right -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div id="challengesListCol" class="lg:col-span-5 space-y-3 max-h-[760px] overflow-y-auto custom-scroll pr-1"></div>
+        <div id="challengeDetailCol" class="lg:col-span-7 rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-5"></div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 4: SMART NOTES STUDIO & CLOUDFLARE R2 ASSET VAULT                -->
+    <!-- ===================================================================== -->
+    <section id="view-notes" class="view-section hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Left Sidebar: Saved Notes List + Filter -->
+        <div class="lg:col-span-4 rounded-2xl bg-slate-900 border border-slate-800 p-4 flex flex-col h-[740px]">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div>
+              <h3 class="text-sm font-bold text-white">Study Notes &amp; Snippets</h3>
+              <p class="text-[11px] text-slate-400">Stored in D1 + R2 attachments</p>
+            </div>
+            <button id="btnNewNote" type="button" class="px-3 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1">
+              <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+              <span>New Note</span>
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 my-3">
+            <select id="notesCourseFilter" aria-label="Filter notes by course" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200">
+              <option value="all">All Courses</option>
+            </select>
+            <input id="notesQuickFilter" type="text" placeholder="Filter by tag/title..." class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200" />
+          </div>
+
+          <div id="notesListContainer" class="flex-1 overflow-y-auto custom-scroll space-y-2.5 pr-1"></div>
+        </div>
+
+        <!-- Right Main Area: Note Editor + Workers AI Pre/Post Processing + R2 Bucket Vault -->
+        <div class="lg:col-span-8 rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-800">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Note Editor &amp; Workers AI Processor</span>
+              <span id="noteSavedStatus" class="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Synced</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="btnAiPreprocessNote" type="button" class="px-3 py-1.5 rounded-xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition" title="Pre-process messy notes into structured Markdown + CLI blocks + BGE vector tags">
+                <i data-lucide="wand-2" class="w-3.5 h-3.5 text-indigo-400"></i>
+                <span>AI Pre-Process (Format &amp; Tag)</span>
+              </button>
+              <button id="btnAiPostprocessNote" type="button" class="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition" title="Post-process note into Exam Flashcards + Verification Drill">
+                <i data-lucide="brain-circuit" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>AI Post-Process (Exam Flashcards)</span>
+              </button>
+              <button id="btnDeleteNote" type="button" class="p-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs transition" title="Delete Note">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-[11px] text-slate-400 mb-1">Note Title</label>
+              <input id="noteTitleInput" type="text" placeholder="e.g., etcd Snapshot Backup & Restore Flags on cp-node-01" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-sm font-semibold text-white" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Course Track</label>
+              <select id="noteCourseSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Tags (comma-separated)</label>
+              <input id="noteTagsInput" type="text" placeholder="etcd, backup, kubeadm, exam-trap" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-400 mb-1">Attach Diagram / YAML / Cheat Sheet to Cloudflare R2 (`BUCKET`)</label>
+              <div class="flex items-center gap-2">
+                <label class="flex-1 cursor-pointer bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-300 flex items-center justify-between transition">
+                  <span id="r2AttachmentLabel" class="truncate">Choose file or YAML manifest...</span>
+                  <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i>
+                  <input id="noteR2FileInput" type="file" class="hidden" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label class="text-[11px] text-slate-400">Markdown &amp; CLI Content (supports `az`, `kubectl`, YAML, Bicep)</label>
+              <button id="btnInsertCliTemplate" type="button" class="text-[11px] text-sky-400 hover:underline">+ Insert K8s/Azure CLI Block</button>
+            </div>
+            <textarea id="noteContentInput" rows="10" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-slate-100 leading-relaxed custom-scroll" placeholder="Paste raw CLI commands, lecture notes, or architecture tradeoffs here..."></textarea>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span id="noteR2KeyBadge" class="text-[11px] font-mono text-slate-400">R2 Key: none</span>
+            <button id="btnSaveNote" type="button" class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-sky-500/20">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Save Note to D1 &amp; Index Embeddings</span>
+            </button>
+          </div>
+
+          <!-- AI Post-Processing Output (Summary & Active Recall Flashcards) -->
+          <div id="noteAiOutputPanel" class="rounded-xl bg-slate-950 border border-slate-800 p-4 space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 5: PROGRESS EVALUATION, MOCK EXAMS & ADD/MANAGE COURSES          -->
+    <!-- ===================================================================== -->
+    <section id="view-progress" class="view-section hidden space-y-6">
+      <!-- AI Readiness Evaluator Banner -->
+      <div class="rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900 to-slate-900 border border-indigo-500/30 p-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-400">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Cloudflare Workers AI Readiness &amp; Gap Evaluator</span>
+          </div>
+          <h2 class="text-lg font-bold text-white">Domain-Weighted Exam Readiness Audit</h2>
+          <p class="text-xs text-slate-300 max-w-2xl">Adjust your confidence per official exam blueprint domain below or log practice exam scores. Workers AI evaluates your pass readiness and prescribes your next 3 high-impact exercises.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 shrink-0">
+          <button id="btnRunAiReadinessAudit" type="button" class="px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-lg shadow-indigo-500/20">
+            <i data-lucide="cpu" class="w-4 h-4"></i>
+            <span>Run Workers AI Progress Audit</span>
+          </button>
+          <button id="btnProgressAddCourse" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition">
+            <i data-lucide="plus-circle" class="w-4 h-4 text-sky-400"></i>
+            <span>Provision New Course</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- AI Audit Output Box -->
+      <div id="aiAuditResultCard" class="hidden rounded-2xl bg-slate-900 border border-indigo-500/40 p-5 space-y-3"></div>
+
+      <!-- Domain Mastery Breakdown per Course -->
+      <div id="progressCoursesContainer" class="grid grid-cols-1 lg:grid-cols-3 gap-6"></div>
+
+      <!-- Practice / Mock Exam Logger & Scorecard -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
+          <h3 class="text-sm font-bold text-white">Log Practice / Simulator Score</h3>
+          <form id="formMockExam" class="space-y-3">
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Course</label>
+              <select id="mockCourseSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Simulator / Assessment Source</label>
+              <input id="mockProviderInput" type="text" placeholder="e.g., MS Learn Practice Assessment / Killer.sh Sim 1" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Score (%)</label>
+                <input id="mockPctInput" type="number" min="1" max="100" value="74" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+              </div>
+              <div>
+                <label class="block text-xs text-slate-400 mb-1">Raw Score</label>
+                <input id="mockRawInput" type="text" placeholder="740 / 1000" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs text-slate-400 mb-1">Weakest Domain Flagged</label>
+              <input id="mockWeakInput" type="text" placeholder="e.g., Virtual Networking / etcd Restore" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+            </div>
+            <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition">
+              Record Mock Score
+            </button>
+          </form>
+        </div>
+
+        <div class="lg:col-span-2 rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-bold text-white">Mock Exam &amp; Simulator History</h3>
+              <p class="text-xs text-slate-400">Benchmark against 700/1000 (AZ-104/305) and 66% (CKA)</p>
+            </div>
+          </div>
+          <div id="mockHistoryList" class="space-y-2.5"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 6: UNIFIED DOCS, NOTES & CLI SEARCH ENGINE                       -->
+    <!-- ===================================================================== -->
+    <section id="view-search" class="view-section hidden space-y-6">
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-6 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-sky-400">Semantic + Keyword Omni-Search</span>
+            <h2 class="text-lg font-bold text-white">Search Across Personal Notes, Lab Exercises &amp; Official Docs</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="btnAiSemanticAnswer" type="button" class="px-3.5 py-2 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+              <span>Workers AI Instant Answer</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="relative">
+          <i data-lucide="search" class="w-5 h-5 text-sky-400 absolute left-4 top-3.5"></i>
+          <input id="globalSearchInput" type="text" placeholder="Search 'etcdctl snapshot', 'VNet peering', 'Cosmos DB RPO', 'kubeadm upgrade', 'RBAC', 'NetworkPolicy'..." class="w-full bg-slate-950 border border-slate-700 focus:border-sky-500 rounded-2xl pl-12 pr-4 py-3 text-sm text-white outline-none transition" />
+        </div>
+
+        <!-- Quick Search Pills -->
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+          <span class="text-slate-400">Quick Queries:</span>
+          <button type="button" data-search-pill="etcd" class="search-pill px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-mono">etcd snapshot</button>
+          <button type="button" data-search-pill="kubeadm" class="search-pill px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-mono">kubeadm upgrade</button>
+          <button type="button" data-search-pill="peering" class="search-pill px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-mono">VNet peering</button>
+          <button type="button" data-search-pill="RBAC" class="search-pill px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-mono">Entra ID &amp; K8s RBAC</button>
+          <button type="button" data-search-pill="NetworkPolicy" class="search-pill px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-mono">NetworkPolicy</button>
+          <button type="button" data-search-pill="Front Door" class="search-pill px-2.5 py-1 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 font-mono">Front Door vs Traffic Manager</button>
+        </div>
+
+        <div id="aiSearchAnswerBox" class="hidden rounded-xl bg-sky-500/10 border border-sky-500/30 p-4 text-xs text-slate-200 space-y-2"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Matching Personal Notes -->
+        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center justify-between">
+            <span>Matching Notes</span>
+            <span id="searchCountNotes" class="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-sky-300">0</span>
+          </h3>
+          <div id="searchNotesResults" class="space-y-2.5 max-h-[500px] overflow-y-auto custom-scroll"></div>
+        </div>
+
+        <!-- Matching Hands-On Labs -->
+        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center justify-between">
+            <span>Matching Hands-On Labs</span>
+            <span id="searchCountLabs" class="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-amber-300">0</span>
+          </h3>
+          <div id="searchLabsResults" class="space-y-2.5 max-h-[500px] overflow-y-auto custom-scroll"></div>
+        </div>
+
+        <!-- Matching Official Documentation Index -->
+        <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white flex items-center justify-between">
+            <span>Official Docs &amp; References</span>
+            <span id="searchCountDocs" class="px-2 py-0.5 rounded-full text-xs bg-slate-800 text-emerald-300">0</span>
+          </h3>
+          <div id="searchDocsResults" class="space-y-2.5 max-h-[500px] overflow-y-auto custom-scroll"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- VIEW 7: CLOUDFLARE PAGES + D1 + R2 + WORKERS AI DEPLOYMENT STUDIO     -->
+    <!-- ===================================================================== -->
+    <section id="view-cloudflare" class="view-section hidden space-y-6">
+      <div class="rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-slate-900 border border-amber-500/30 p-6 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-amber-400">Edge-Native Full-Stack Architecture</span>
+            <h2 class="text-lg sm:text-xl font-bold text-white mt-0.5">Cloudflare Pages + D1 SQL + R2 Storage + Workers AI</h2>
+            <p class="text-xs text-slate-300 max-w-3xl mt-1">
+              This dashboard is engineered with a dual-mode storage &amp; AI adapter: when deployed on Cloudflare Pages, it binds directly to <code class="text-amber-300">env.DB</code> (D1), <code class="text-amber-300">env.BUCKET</code> (R2), and <code class="text-amber-300">env.AI</code> (Workers AI). In local/Canvas preview, it seamlessly persists to local storage while simulating edge AI pipelines.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button id="btnTestEdgeBindings" type="button" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+              <span>Run Edge Binding Health Check</span>
+            </button>
+            <button id="btnExportStateJson" type="button" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs flex items-center gap-1.5 transition">
+              <i data-lucide="download" class="w-4 h-4 text-sky-400"></i>
+              <span>Export D1 Seed JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Pillar Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 p-3.5">
+            <div class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
+              <i data-lucide="globe" class="w-4 h-4"></i>
+              <span>1. Pages Functions</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Single `functions/api/[[route]].js` catch-all router serving REST &amp; AI endpoints at the edge with zero cold starts.</p>
+          </div>
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 p-3.5">
+            <div class="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+              <i data-lucide="database" class="w-4 h-4"></i>
+              <span>2. Cloudflare D1 (`env.DB`)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">6 normalized SQLite tables (`courses`, `decisions`, `study_logs`, `notes`, `challenges`, `mock_exams`).</p>
+          </div>
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 p-3.5">
+            <div class="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+              <i data-lucide="hard-drive" class="w-4 h-4"></i>
+              <span>3. Cloudflare R2 (`env.BUCKET`)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Zero-egress object bucket (`study-hub-assets`) storing architecture diagrams, `kubeconfig` templates &amp; YAML labs.</p>
+          </div>
+          <div class="rounded-xl bg-slate-950/90 border border-slate-800 p-3.5">
+            <div class="text-xs font-bold text-indigo-400 flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>4. Workers AI (`env.AI`)</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Pre-processes messy notes (`llama-3.1-8b-instruct` + `bge-base-en-v1.5`) &amp; post-processes flashcards and readiness audits.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code Inspector Tabs for wrangler.toml, schema.sql, functions/api/[[route]].js, and Deploy CLI -->
+      <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" data-cf-file="wrangler" class="cf-code-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">wrangler.toml</button>
+            <button type="button" data-cf-file="schema" class="cf-code-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white">schema.sql (D1)</button>
+            <button type="button" data-cf-file="worker" class="cf-code-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white">functions/api/[[route]].js</button>
+            <button type="button" data-cf-file="deploy" class="cf-code-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white">Wrangler Deploy CLI</button>
+          </div>
+          <button id="btnCopyCfCode" type="button" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-sky-400 flex items-center gap-1.5">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+            <span>Copy File Content</span>
+          </button>
+        </div>
+        <pre id="cfCodeViewer" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-slate-200 overflow-x-auto max-h-[460px] custom-scroll leading-relaxed"></pre>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 1: ADD / PROVISION NEW COURSE (Requirement #8)                    -->
+  <!-- ======================================================================= -->
+  <div id="modalAddCourse" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-white">Provision New Certification or Course</h3>
+          <p class="text-xs text-slate-400">Dynamically adds a new track to D1, Hours Logger, Notes, and Readiness Evaluator</p>
+        </div>
+        <button id="btnCloseCourseModal" type="button" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="formAddCourse" class="space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Course Code</label>
+            <input id="newCourseCode" type="text" placeholder="e.g., AZ-400 or CKAD" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Provider / Platform</label>
+            <input id="newCourseProvider" type="text" placeholder="e.g., Microsoft Learn / Udemy" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Full Course / Certification Title</label>
+          <input id="newCourseTitle" type="text" placeholder="e.g., Designing and Implementing Microsoft DevOps Solutions" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Target Date</label>
+            <input id="newCourseDate" type="date" value="2026-11-30" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Target Hours</label>
+            <input id="newCourseHours" type="number" min="5" max="300" value="35" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-white font-mono" />
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Accent Theme</label>
+            <select id="newCourseColor" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-2 text-xs text-white">
+              <option value="sky">Azure Blue</option>
+              <option value="indigo">Architect Indigo</option>
+              <option value="emerald">Kubernetes Emerald</option>
+              <option value="amber">Cloudflare Amber</option>
+              <option value="rose">Security Rose</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Exam Domains (comma-separated with optional % weight)</label>
+          <input id="newCourseDomains" type="text" value="Core Architecture (30%), Security & RBAC (25%), CI/CD & Automation (25%), Monitoring & Troubleshooting (20%)" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="btnCancelCourseModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold">Add Course to Command Center</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 2: LOCK NEW DECISION / COMMITMENT (Requirement #1)                -->
+  <!-- ======================================================================= -->
+  <div id="modalAddDecision" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Lock a New Study Decision</h3>
+        <button id="btnCloseDecisionModal" type="button" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="formAddDecision" class="space-y-3">
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Commitment / Decision Statement</label>
+          <input id="decisionTitleInput" type="text" placeholder="e.g., Run 2 Killer.sh CKA simulations before booking exam" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Why / Execution Rule</label>
+          <textarea id="decisionRationaleInput" rows="2" placeholder="e.g., Never skip hands-on verification on the 3-node cluster after watching a Udemy module." required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white"></textarea>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Related Track</label>
+            <select id="decisionCourseSelect" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Target Deadline</label>
+            <input id="decisionDateInput" type="date" value="2026-10-31" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="btnCancelDecisionModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold">Pin Decision</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================================================================= -->
+  <!-- MODAL 3: ADD CUSTOM HANDS-ON EXERCISE (Requirement #4)                  -->
+  <!-- ======================================================================= -->
+  <div id="modalAddChallenge" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-white">Add Custom Hands-On Lab / Daily Exercise</h3>
+        <button id="btnCloseChallengeModal" type="button" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <form id="formAddChallenge" class="space-y-3">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Course</label>
+            <select id="customLabCourse" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"></select>
+          </div>
+          <div>
+            <label class="block text-xs text-slate-300 mb-1">Domain</label>
+            <input id="customLabDomain" type="text" placeholder="e.g., Storage / Troubleshooting" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Exercise Title</label>
+          <input id="customLabTitle" type="text" placeholder="e.g., Configure CSI PersistentVolume Expansion on worker-node-01" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white" />
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Scenario Description</label>
+          <textarea id="customLabScenario" rows="2" placeholder="Describe what needs to be provisioned or fixed..." required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">Tasks (one task per line)</label>
+          <textarea id="customLabTasks" rows="3" placeholder="Create StorageClass with allowVolumeExpansion: true&#10;Bind PVC to Pod on worker-node-01&#10;Resize PVC and verify filesystem" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white font-mono"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs text-slate-300 mb-1">CLI Verification Command</label>
+          <input id="customLabCli" type="text" placeholder="kubectl get pvc,pv -o wide" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono" />
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button id="btnCancelChallengeModal" type="button" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold">Save Hands-On Lab</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- ======================================================================= -->
+  <!-- APPLICATION LOGIC, PRE-LOADED DATA & CLOUDFLARE D1/R2/AI ADAPTER        -->
+  <!-- ======================================================================= -->
+  <script>
+    const STORAGE_KEY = 'cf_azure_cka_command_v1';
+
+    const DEFAULT_STATE = {
+      activeNav: 'overview',
+      selectedChallengeId: 'cka-lab-01',
+      selectedNoteId: 'note-1',
+      spotlightIndex: 0,
+      decisions: [
+        {
+          id: 'dec-1',
+          title: 'Sprint Goal #1: Pass AZ-104 & AZ-305 This Month (October 2026)',
+          rationale: 'Lock in core Azure Administrator hands-on labs (Entra ID, VNet Peering, Storage, AKS) by Oct 24, then pivot directly into AZ-305 Architect Case Studies while admin concepts are fresh.',
+          courseId: 'az-104',
+          targetDate: '2026-10-31',
+          completed: false
+        },
+        {
+          id: 'dec-2',
+          title: 'Continuous Track #2: Keep Daily CKA Momentum on Udemy',
+          rationale: 'Never let Kubernetes muscle memory go cold during the Azure sprint — spend at least 35–45 mins every single day running imperative kubectl & troubleshooting drills.',
+          courseId: 'cka-k8s',
+          targetDate: '2026-11-20',
+          completed: false
+        },
+        {
+          id: 'dec-3',
+          title: 'Lab Infrastructure Rule: Validate Every K8s Concept on My 3-Node Cluster',
+          rationale: 'Use my 3-node kubeadm setup (cp-node-01, worker-node-01, worker-node-02) built from official docs for real etcd snapshots, node drain/upgrade, and CNI NetworkPolicies.',
+          courseId: 'cka-k8s',
+          targetDate: '2026-10-31',
+          completed: true
+        }
+      ],
+      courses: [
+        {
+          id: 'az-104',
+          code: 'AZ-104',
+          title: 'Microsoft Certified: Azure Administrator Associate',
+          provider: 'Microsoft Learn + GitHub Hands-On Labs',
+          color: 'sky',
+          targetDate: '2026-10-24',
+          targetHours: 45,
+          passingScore: '700 / 1000',
+          domains: [
+            { name: 'Manage Entra ID Identities & Governance', weight: 22, mastery: 76 },
+            { name: 'Implement & Manage Storage', weight: 18, mastery: 72 },
+            { name: 'Deploy & Manage Azure Compute Resources', weight: 22, mastery: 70 },
+            { name: 'Implement & Manage Virtual Networking', weight: 18, mastery: 64 },
+            { name: 'Monitor & Maintain Azure Resources', weight: 20, mastery: 68 }
+          ]
+        },
+        {
+          id: 'az-305',
+          code: 'AZ-305',
+          title: 'Designing Microsoft Azure Infrastructure Solutions',
+          provider: 'Microsoft Learn + Architect Case Studies',
+          color: 'indigo',
+          targetDate: '2026-10-31',
+          targetHours: 40,
+          passingScore: '700 / 1000',
+          domains: [
+            { name: 'Design Identity, Governance & Monitoring', weight: 28, mastery: 72 },
+            { name: 'Design Data Storage Solutions (SQL/Cosmos/Data Lake)', weight: 22, mastery: 65 },
+            { name: 'Design Business Continuity (HA/DR/RPO/RTO)', weight: 18, mastery: 62 },
+            { name: 'Design Infrastructure Solutions (Compute/Network/App)', weight: 32, mastery: 68 }
+          ]
+        },
+        {
+          id: 'cka-k8s',
+          code: 'CKA',
+          title: 'Certified Kubernetes Administrator (Udemy + 3-Node Cluster)',
+          provider: 'Udemy (Mumshad / KodeKloud) + 3-Node kubeadm Lab',
+          color: 'emerald',
+          targetDate: '2026-11-20',
+          targetHours: 55,
+          passingScore: '66% (Hands-On CLI)',
+          domains: [
+            { name: 'Troubleshooting (Nodes, Control Plane, CNI, Workloads)', weight: 30, mastery: 71 },
+            { name: 'Cluster Architecture, Installation & Configuration (etcd, kubeadm, RBAC)', weight: 25, mastery: 78 },
+            { name: 'Services & Networking (CoreDNS, Ingress, Gateway API, NetPol)', weight: 20, mastery: 66 },
+            { name: 'Workloads & Scheduling (Affinity, Taints, Static Pods)', weight: 15, mastery: 75 },
+            { name: 'Storage (PV, PVC, StorageClass, CSI)', weight: 10, mastery: 70 }
+          ]
+        }
+      ],
+      studyLogs: [
+        {
+          id: 'log-1',
+          courseId: 'cka-k8s',
+          domain: 'Cluster Architecture, Installation & Configuration (etcd, kubeadm, RBAC)',
+          activityType: 'Hands-On Lab (3-Node K8s / Azure Portal)',
+          hours: 3.5,
+          date: '2026-10-11',
+          reflection: 'Bootstrapped 3-node cluster (cp-node-01, worker-node-01, worker-node-02) with kubeadm, containerd, and Calico CNI per official Kubernetes docs.',
+          aiTakeaway: 'Verify /etc/kubernetes/manifests static pod paths and practice etcdctl snapshot save with --cacert, --cert, and --key flags.'
+        },
+        {
+          id: 'log-2',
+          courseId: 'az-104',
+          domain: 'Manage Entra ID Identities & Governance',
+          activityType: 'Hands-On Lab (3-Node K8s / Azure Portal)',
+          hours: 2.5,
+          date: '2026-10-12',
+          reflection: 'Completed AZ-104 Lab 01 & 02: Dynamic membership rules, custom RBAC JSON definitions, and Azure Policy inherit-tag remediation tasks.',
+          aiTakeaway: 'Exam Trap: Azure Policy Deny effects block resource creation even if the user has Owner RBAC permissions.'
+        },
+        {
+          id: 'log-3',
+          courseId: 'az-104',
+          domain: 'Implement & Manage Virtual Networking',
+          activityType: 'Hands-On Lab (3-Node K8s / Azure Portal)',
+          hours: 3.0,
+          date: '2026-10-13',
+          reflection: 'Built Hub-Spoke VNet peering with AllowForwardedTraffic and UseRemoteGateways, plus Private DNS Zone auto-registration.',
+          aiTakeaway: 'Remember that VNet Peering is non-transitive by default; spoke-to-spoke routing requires an NVA/Azure Firewall with UDRs.'
+        },
+        {
+          id: 'log-4',
+          courseId: 'az-305',
+          domain: 'Design Data Storage Solutions (SQL/Cosmos/Data Lake)',
+          activityType: 'Architecture Case Study (AZ-305)',
+          hours: 2.0,
+          date: '2026-10-14',
+          reflection: 'Analyzed Fabrikam case study: compared Cosmos DB 5 consistency levels and Azure SQL Business Critical vs Hyperscale.',
+          aiTakeaway: 'Choose Azure SQL Hyperscale when DB exceeds 4TB–100TB or requires rapid scale-out read replicas with near-instant backups.'
+        },
+        {
+          id: 'log-5',
+          courseId: 'cka-k8s',
+          domain: 'Troubleshooting (Nodes, Control Plane, CNI, Workloads)',
+          activityType: 'Udemy Video Course & Demos',
+          hours: 1.5,
+          date: '2026-10-15',
+          reflection: 'Practiced fixing stopped kubelet service and expired cert paths on worker-node-02 using journalctl -u kubelet -f.',
+          aiTakeaway: 'On broken worker nodes, always check `systemctl status kubelet`, `journalctl -u kubelet`, and `/var/lib/kubelet/config.yaml` first.'
+        }
+      ],
+      challenges: [
+        {
+          id: 'cka-lab-01',
+          courseId: 'cka-k8s',
+          domain: 'Cluster Architecture, Installation & Configuration (etcd, kubeadm, RBAC)',
+          difficulty: 'High-Yield (25% Exam Weight)',
+          estMinutes: 30,
+          title: '3-Node K8s Lab 01: etcd Snapshot Backup & Full State Recovery on cp-node-01',
+          scenario: 'On your 3-node cluster, take a verified etcd snapshot of cp-node-01 to /var/lib/backup/etcd-snapshot.db, simulate accidental deletion of a critical namespace, and restore the cluster state into /var/lib/etcd-restored.',
+          environmentNote: 'Target: cp-node-01 (Control Plane running stacked etcd static pod)',
+          tasks: [
+            { text: 'Inspect /etc/kubernetes/manifests/etcd.yaml to grab --listen-client-urls, --trusted-ca-file, --cert-file, and --key-file paths', done: true },
+            { text: 'Run ETCDCTL_API=3 etcdctl snapshot save /var/lib/backup/etcd-snapshot.db with TLS flags and verify status', done: true },
+            { text: 'Create a test deployment `kubectl create deploy nginx-test --image=nginx` then delete it to simulate data loss', done: false },
+            { text: 'Restore snapshot to `--data-dir=/var/lib/etcd-restored` using `etcdutl` / `etcdctl snapshot restore`', done: false },
+            { text: 'Update hostPath in `/etc/kubernetes/manifests/etcd.yaml` to `/var/lib/etcd-restored` and wait for kube-apiserver recovery', done: false }
+          ],
+          cliVerification: `ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \\\n  --cacert=/etc/kubernetes/pki/etcd/ca.crt \\\n  --cert=/etc/kubernetes/pki/etcd/server.crt \\\n  --key=/etc/kubernetes/pki/etcd/server.key \\\n  snapshot save /var/lib/backup/etcd-snapshot.db\n\nETCDCTL_API=3 etcdctl snapshot restore /var/lib/backup/etcd-snapshot.db \\\n  --data-dir=/var/lib/etcd-restored`,
+          sourceTitle: 'Kubernetes Official Docs: Operating etcd clusters for Kubernetes',
+          sourceUrl: 'https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/',
+          completed: false
+        },
+        {
+          id: 'cka-lab-02',
+          courseId: 'cka-k8s',
+          domain: 'Cluster Architecture, Installation & Configuration (etcd, kubeadm, RBAC)',
+          difficulty: 'High-Yield (Core CKA Task)',
+          estMinutes: 40,
+          title: '3-Node K8s Lab 02: Zero-Downtime kubeadm Minor Version Upgrade across Control Plane & Workers',
+          scenario: 'Upgrade your 3-node cluster (`cp-node-01`, `worker-node-01`, `worker-node-02`) by one minor Kubernetes release while gracefully draining workloads between worker-node-01 and worker-node-02.',
+          environmentNote: 'Target: cp-node-01 -> worker-node-01 -> worker-node-02',
+          tasks: [
+            { text: 'Drain cp-node-01 (`kubectl drain cp-node-01 --ignore-daemonsets`) and run `kubeadm upgrade plan`', done: false },
+            { text: 'Upgrade kubeadm on cp-node-01 and execute `sudo kubeadm upgrade apply v1.32.0`', done: false },
+            { text: 'Upgrade kubelet & kubectl on cp-node-01, run `systemctl daemon-reload && systemctl restart kubelet`, and uncordon', done: false },
+            { text: 'Drain worker-node-01 (workloads reschedule onto worker-node-02), upgrade kubeadm, run `sudo kubeadm upgrade node`, restart kubelet, and uncordon', done: false }
+          ],
+          cliVerification: `kubectl drain worker-node-01 --ignore-daemonsets --delete-emptydir-data\n# On worker-node-01:\nsudo kubeadm upgrade node\nsudo systemctl daemon-reload && sudo systemctl restart kubelet\n# Back on cp-node-01:\nkubectl uncordon worker-node-01 && kubectl get nodes -o wide`,
+          sourceTitle: 'Kubernetes Official Docs: Upgrading kubeadm clusters',
+          sourceUrl: 'https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/',
+          completed: false
+        },
+        {
+          id: 'cka-lab-03',
+          courseId: 'cka-k8s',
+          domain: 'Troubleshooting (Nodes, Control Plane, CNI, Workloads)',
+          difficulty: 'Exam Critical (30% Weight)',
+          estMinutes: 25,
+          title: '3-Node K8s Lab 03: Rescue a Broken Worker Node (`worker-node-02` NotReady) & Control Plane Static Pod',
+          scenario: 'Simulate a dual failure from Killer.sh: `worker-node-02` shows `NotReady` due to a misconfigured kubelet systemd unit / CA path, and `kube-scheduler` on `cp-node-01` is crash-looping due to a typo in its static manifest.',
+          environmentNote: 'Target: SSH into worker-node-02 and cp-node-01',
+          tasks: [
+            { text: 'Run `kubectl get nodes` and `kubectl describe node worker-node-02` to inspect Conditions and Events', done: true },
+            { text: 'SSH to worker-node-02, run `systemctl status kubelet` and `journalctl -u kubelet -n 50 --no-pager`', done: false },
+            { text: 'Fix `/var/lib/kubelet/config.yaml` or `/etc/systemd/system/kubelet.service.d/10-kubeadm.conf`, reload systemd, and restart kubelet', done: false },
+            { text: 'On cp-node-01, inspect `/var/log/pods` and `/etc/kubernetes/manifests/kube-scheduler.yaml` to fix the command flag typo', done: false }
+          ],
+          cliVerification: `ssh worker-node-02 "sudo systemctl status kubelet && sudo journalctl -u kubelet -n 30 --no-pager"\nssh cp-node-01 "sudo crictl ps -a | grep kube-scheduler"\nkubectl get nodes && kubectl -n kube-system get pods`,
+          sourceTitle: 'Killer.sh Official CKA Simulator Scenarios',
+          sourceUrl: 'https://killer.sh/cka',
+          completed: false
+        },
+        {
+          id: 'cka-lab-04',
+          courseId: 'cka-k8s',
+          domain: 'Services & Networking (CoreDNS, Ingress, Gateway API, NetPol)',
+          difficulty: 'Medium-Hard',
+          estMinutes: 35,
+          title: '3-Node K8s Lab 04: Zero-Trust Multi-Namespace NetworkPolicy + Cross-Node Pod Routing',
+          scenario: 'Deploy `frontend` on `worker-node-01` and `backend` + `db` on `worker-node-02`. Lock down `db` with a default-deny ingress/egress policy, then allow ingress ONLY from pods labeled `role=backend` in namespace `app-prod` on port 5432, plus allow DNS egress on UDP/TCP 53.',
+          environmentNote: 'Requires CNI with NetworkPolicy enforcement (Calico / Cilium / Weave) on your 3-node cluster',
+          tasks: [
+            { text: 'Create namespaces `app-prod` and `data-tier` and label `app-prod` with `env=prod`', done: false },
+            { text: 'Apply a `NetworkPolicy` in `data-tier` selecting `app=postgres` with `policyTypes: ["Ingress", "Egress"]`', done: false },
+            { text: 'Configure `from` rule combining `namespaceSelector` (`env: prod`) AND `podSelector` (`role: backend`) on port 5432', done: false },
+            { text: 'Verify connectivity from `backend` pod succeeds and from `frontend` pod times out (`nc -zv`)', done: false }
+          ],
+          cliVerification: `kubectl -n data-tier describe networkpolicy db-zero-trust\nkubectl -n app-prod exec deploy/backend -- nc -zv -w 3 db-svc.data-tier.svc.cluster.local 5432\nkubectl -n app-prod exec deploy/frontend -- nc -zv -w 3 db-svc.data-tier.svc.cluster.local 5432`,
+          sourceTitle: 'KodeKloud CKA Certification Course Labs',
+          sourceUrl: 'https://kodekloud.com/courses/cka-certification-course-certified-kubernetes-administrator',
+          completed: false
+        },
+        {
+          id: 'cka-lab-05',
+          courseId: 'cka-k8s',
+          domain: 'Workloads & Scheduling (Affinity, Taints, Static Pods)',
+          difficulty: 'Medium',
+          estMinutes: 30,
+          title: '3-Node K8s Lab 05: Taints, Tolerations, Node Affinity & Least-Privilege RBAC across 3 Nodes',
+          scenario: 'Taint `worker-node-01` with `dedicated=gpu:NoSchedule`, label `worker-node-02` with `disktype=nvme`, schedule workloads accordingly, and create a `Role` + `RoleBinding` for a CI `ServiceAccount` restricted to viewing deployments and pods.',
+          environmentNote: 'Target: cp-node-01, worker-node-01, worker-node-02',
+          tasks: [
+            { text: 'Apply taint `kubectl taint nodes worker-node-01 dedicated=gpu:NoSchedule` and label `worker-node-02 disktype=nvme`', done: true },
+            { text: 'Deploy a 4-replica workload with `requiredDuringSchedulingIgnoredDuringExecution` matching `disktype=nvme`', done: true },
+            { text: 'Create ServiceAccount `ci-auditor`, Role `deployment-reader`, and RoleBinding in namespace `staging`', done: true },
+            { text: 'Verify permissions using `kubectl auth can-i get deployments --as=system:serviceaccount:staging:ci-auditor -n staging`', done: true }
+          ],
+          cliVerification: `kubectl taint nodes worker-node-01 dedicated=gpu:NoSchedule\nkubectl label nodes worker-node-02 disktype=nvme\nkubectl auth can-i list pods --as=system:serviceaccount:staging:ci-auditor -n staging`,
+          sourceTitle: 'Practice CKA on Real Multi-Node Clusters Guide',
+          sourceUrl: 'https://sailor.sh/blog/how-to-practice-cka-for-free/',
+          completed: true
+        },
+        {
+          id: 'az104-lab-01',
+          courseId: 'az-104',
+          domain: 'Manage Entra ID Identities & Governance',
+          difficulty: 'Core Lab',
+          estMinutes: 35,
+          title: 'AZ-104 Lab 01 & 02: Dynamic Entra ID Groups, Custom RBAC Role & Tag Governance Policy',
+          scenario: 'Provision Entra ID users across departments, build a Dynamic User Group driven by `user.department -eq "CloudOps"`, author a custom RBAC Role allowing VM restart/read only, and enforce cost-center tagging via Azure Policy with an automated Modify remediation task.',
+          environmentNote: 'Target: Azure Portal / Azure Cloud Shell (Bash)',
+          tasks: [
+            { text: 'Create Entra ID users and configure a Dynamic Membership rule `(user.department -eq "CloudOps")`', done: true },
+            { text: 'Clone the Virtual Machine Contributor role into a custom role allowing only `Microsoft.Compute/virtualMachines/start/action` and `restart/action`', done: true },
+            { text: 'Assign the builtin `Require a tag and its value on resources` policy definition at Resource Group scope', done: true },
+            { text: 'Assign `Inherit a tag from the resource group if missing` with a System-Assigned Managed Identity remediation task', done: true }
+          ],
+          cliVerification: `az role definition list --custom-role-only true -o table\naz policy state summarize --resource-group rg-az104-governance\naz ad group member list --group "sg-cloudops-dynamic" -o table`,
+          sourceTitle: 'Microsoft Learning Official AZ-104 Lab 01 (GitHub)',
+          sourceUrl: 'https://github.com/MicrosoftLearning/AZ-104-MicrosoftAzureAdministrator/blob/master/Instructions/Labs/LAB_01-Manage_Entra_ID_Identities.md',
+          completed: true
+        },
+        {
+          id: 'az104-lab-04',
+          courseId: 'az-104',
+          domain: 'Implement & Manage Virtual Networking',
+          difficulty: 'High-Yield (20% Weight)',
+          estMinutes: 45,
+          title: 'AZ-104 Lab 04 & 05: Hub-Spoke VNet Peering, NSG/ASG Micro-Segmentation & Private DNS',
+          scenario: 'Build a Hub VNet (`10.0.0.0/16`) and two Spoke VNets (`10.1.0.0/16`, `10.2.0.0/16`), configure global & regional VNet Peering with gateway transit flags, lock down traffic using Application Security Groups (`asg-web`, `asg-db`), and link an Azure Private DNS Zone (`internal.contoso.com`).',
+          environmentNote: 'Target: Azure CLI / Bicep in Azure Sandbox',
+          tasks: [
+            { text: 'Create Hub and Spoke VNets and establish bidirectional `az network vnet peering create` with `--allow-vnet-access` and `--allow-forwarded-traffic`', done: false },
+            { text: 'Create ASGs `asg-web` and `asg-db` and bind an NSG rule allowing TCP 1433 only from `asg-web` to `asg-db`', done: false },
+            { text: 'Provision Private DNS Zone `internal.contoso.com` and create a virtual network link with `--registration-enabled true`', done: false },
+            { text: 'Run `az network watcher test-ip-flow` to verify NSG security rules allow 443 and deny unauthorized SSH', done: false }
+          ],
+          cliVerification: `az network vnet peering list --resource-group rg-az104-net --vnet-name vnet-hub -o table\naz network private-dns link vnet list -g rg-az104-net -z internal.contoso.com -o table\naz network watcher test-ip-flow --vm vm-web-01 --direction Inbound --local 10.1.0.4:443 --remote 10.2.0.4:52000 --protocol TCP`,
+          sourceTitle: 'Microsoft Learning AZ-104 Lab 04 Tasks (GitHub)',
+          sourceUrl: 'https://gist.github.com/patrickf-nz/7743345d2e98322d379cedb658312678',
+          completed: false
+        },
+        {
+          id: 'az104-lab-07',
+          courseId: 'az-104',
+          domain: 'Implement & Manage Storage',
+          difficulty: 'Medium',
+          estMinutes: 35,
+          title: 'AZ-104 Lab 07: Storage Account Private Endpoints, Stored Access Policies & Lifecycle Tiering',
+          scenario: 'Secure an Azure Storagev2 account by disabling public network access, provisioning a Private Endpoint with `privatelink.blob.core.windows.net`, issuing a SAS token backed by a Stored Access Policy (for instant revocation), and automating Cool -> Cold -> Archive transitions.',
+          environmentNote: 'Target: Azure Portal / Azure CLI',
+          tasks: [
+            { text: 'Create a GPv2 Storage Account with RA-GRS redundancy and Blob soft delete (14 days) + versioning enabled', done: false },
+            { text: 'Create a Stored Access Policy on container `audit-logs` and generate a SAS URI bound to that policy', done: false },
+            { text: 'Configure a Lifecycle Management JSON rule moving blobs unmodified for 30 days to Cool and 90 days to Archive', done: false },
+            { text: 'Disable public network access and attach a Private Endpoint in `snet-endpoints` with Private DNS integration', done: false }
+          ],
+          cliVerification: `az storage account show -n staz104oct2026 -g rg-az104-storage --query "{Sku:sku.name,PublicAccess:publicNetworkAccess}"\naz storage container policy list --account-name staz104oct2026 --container-name audit-logs`,
+          sourceTitle: 'Microsoft Learning AZ-104 Online Hosted Labs',
+          sourceUrl: 'https://microsoftlearning.github.io/AZ-104-MicrosoftAzureAdministrator/',
+          completed: false
+        },
+        {
+          id: 'az104-lab-09',
+          courseId: 'az-104',
+          domain: 'Deploy & Manage Azure Compute Resources',
+          difficulty: 'Bridge (AZ-104 + CKA)',
+          estMinutes: 40,
+          title: 'AZ-104 + CKA Bridge Lab: Multi-Zone AKS Cluster with Azure CNI Overlay & Workload Identity',
+          scenario: 'Bridge your CKA Kubernetes skills directly to Azure by deploying an AKS cluster across Availability Zones 1, 2, and 3 with Azure CNI Overlay, Cluster Autoscaler, and Entra Workload Identity federation.',
+          environmentNote: 'Connects AZ-104 Compute/Containers directly to your CKA track',
+          tasks: [
+            { text: 'Provision AKS with `--network-plugin azure --network-plugin-mode overlay --zones 1 2 3`', done: false },
+            { text: 'Fetch credentials via `az aks get-credentials` and compare node labels (`topology.kubernetes.io/zone`) against your 3-node local cluster', done: false },
+            { text: 'Configure a separate User Node Pool with `--enable-cluster-autoscaler --min-count 1 --max-count 5`', done: false },
+            { text: 'Deploy an NGINX Ingress / Internal LoadBalancer service using annotation `service.beta.kubernetes.io/azure-load-balancer-internal: "true"`', done: false }
+          ],
+          cliVerification: `az aks create -g rg-aks-bridge -n aks-prod-01 --node-count 3 --zones 1 2 3 --network-plugin azure --network-plugin-mode overlay\naz aks get-credentials -g rg-aks-bridge -n aks-prod-01\nkubectl get nodes -L topology.kubernetes.io/zone,kubernetes.io/arch`,
+          sourceTitle: 'Study Guide for Exam AZ-104: Microsoft Azure Administrator',
+          sourceUrl: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-104',
+          completed: false
+        },
+        {
+          id: 'az305-lab-01',
+          courseId: 'az-305',
+          domain: 'Design Infrastructure Solutions (Compute/Network/App)',
+          difficulty: 'Architect Case Study',
+          estMinutes: 40,
+          title: 'AZ-305 Case Study 01: Fabrikam Residences — Zero-Trust Hub-Spoke, Azure Firewall & ExpressRoute Failover',
+          scenario: 'Architect a multi-subscription Azure Landing Zone for Fabrikam Residences: design management group hierarchy, centralize egress inspection through Azure Firewall Premium (IDPS + TLS inspection), and design resilient hybrid connectivity with ExpressRoute + Site-to-Site VPN backup.',
+          environmentNote: 'Official AZ-305 Module 8 Capstone Case Study',
+          tasks: [
+            { text: 'Map Management Group hierarchy (`Root -> Platform (Identity, Connectivity, Management) + Landing Zones (Corp, Online)`)', done: false },
+            { text: 'Select SKU tier: Azure Firewall Premium (required for TLS inspection, IDPS, and URL filtering) vs Standard', done: false },
+            { text: 'Design hybrid failover: ExpressRoute private peering as primary with Site-to-Site IPsec VPN over BGP as automated backup', done: false },
+            { text: 'Select global load balancer: Azure Front Door (Global Layer-7 HTTP/S + WAF) vs Azure Traffic Manager (DNS-based any-protocol)', done: false }
+          ],
+          cliVerification: `# Architecture Decision Matrix Check (AZ-305):\n# Global HTTP/S + WAF + SSL Offload -> Azure Front Door\n# Global Non-HTTP / DNS Failover -> Azure Traffic Manager\n# Regional Layer-7 Path/Host Routing -> Application Gateway v2\n# Regional Layer-4 Ultra-Low Latency TCP/UDP -> Azure Standard Load Balancer`,
+          sourceTitle: 'Microsoft Learning AZ-305 Official Case Studies',
+          sourceUrl: 'https://microsoftlearning.github.io/AZ-305-DesigningMicrosoftAzureInfrastructureSolutions/',
+          completed: false
+        },
+        {
+          id: 'az305-lab-02',
+          courseId: 'az-305',
+          domain: 'Design Data Storage Solutions (SQL/Cosmos/Data Lake)',
+          difficulty: 'High-Yield (25% Weight)',
+          estMinutes: 35,
+          title: 'AZ-305 Case Study 02: Mission-Critical Data Tier — Azure SQL Business Critical vs Hyperscale vs Cosmos DB',
+          scenario: 'Evaluate 4 enterprise data workloads and choose the exact SKU, consistency model, and HA/DR topology that meets strict RPO (< 5 sec) and RTO (< 30 sec) requirements without over-provisioning cost.',
+          environmentNote: 'AZ-305 Data Storage & Business Continuity Blueprint',
+          tasks: [
+            { text: 'Workload A (85 TB relational DB needing fast read scale-out & instant backups) -> Select Azure SQL Database Hyperscale', done: true },
+            { text: 'Workload B (Legacy SQL Server needing SQL Agent Jobs, DB Mail, cross-DB transactions inside VNet) -> Select Azure SQL Managed Instance', done: true },
+            { text: 'Workload C (Global IoT telemetry needing <10ms multi-region writes & tunable RPO) -> Select Azure Cosmos DB with Session or Bounded Staleness consistency', done: true },
+            { text: 'Workload D (Big data Spark/Parquet analytics needing POSIX ACLs) -> Select Azure Data Lake Storage Gen2 (Hierarchical Namespace enabled)', done: true }
+          ],
+          cliVerification: `# AZ-305 RPO/RTO & SQL Decision Cheat Sheet:\n# Auto-Failover Groups (Azure SQL DB / MI): RPO = 5s (async), RTO < 30s\n# Zone-Redundant Business Critical: RPO = 0s (sync across AZs)\n# Cosmos DB Bounded Staleness: Guarantees reads lag writes by at most K versions or T time interval`,
+          sourceTitle: 'Study Guide for Exam AZ-305: Designing Microsoft Azure Infrastructure Solutions',
+          sourceUrl: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-305',
+          completed: true
+        },
+        {
+          id: 'az305-lab-03',
+          courseId: 'az-305',
+          domain: 'Design Identity, Governance & Monitoring',
+          difficulty: 'Medium-Hard',
+          estMinutes: 30,
+          title: 'AZ-305 Case Study 03: Managed Identities, Key Vault RBAC, PIM & Azure Monitor Workspace Design',
+          scenario: 'Eliminate all hardcoded secrets across an enterprise microservices estate using System/User-Assigned Managed Identities, Azure Key Vault with Entra RBAC permission model, Privileged Identity Management (PIM) just-in-time elevation, and centralized Log Analytics workspaces.',
+          environmentNote: 'Bridges AZ-104 Identity implementation with AZ-305 Governance design',
+          tasks: [
+            { text: 'Decide between System-Assigned (1:1 lifecycle with resource) vs User-Assigned Managed Identity (shared across scale sets/multiple apps)', done: false },
+            { text: 'Design Key Vault access using `Key Vault Secrets User` (data-plane RBAC) instead of legacy Vault Access Policies', done: false },
+            { text: 'Configure Entra ID PIM for `Global Administrator` and `Subscription Contributor` with MFA + approval + time-bound activation', done: false },
+            { text: 'Design Log Analytics workspace topology (Dedicated vs Replicated table plans & Data Collection Rules)', done: false }
+          ],
+          cliVerification: `az keyvault create -n kv-az305-arch -g rg-sec --enable-rbac-authorization true\naz monitor data-collection rule list -g rg-sec -o table`,
+          sourceTitle: 'AZ-305: Design Infrastructure Solutions Learning Path',
+          sourceUrl: 'https://learn.microsoft.com/en-us/training/paths/design-infranstructure-solutions/',
+          completed: false
+        }
+      ],
+      notes: [
+        {
+          id: 'note-1',
+          courseId: 'cka-k8s',
+          title: '3-Node Cluster Cheat Sheet: etcd Backup, kubeadm Upgrade & Fast Imperative kubectl',
+          tags: ['etcd', 'kubeadm', '3-node-cluster', 'kubectl', 'exam-speed'],
+          r2Key: 'r2://study-hub-assets/cka/3-node-topology-and-etcd-restore.yaml',
+          r2Name: '3-node-topology-and-etcd-restore.yaml (4.2 KB in R2)',
+          updatedAt: '2026-10-15',
+          content: `### 1. Fast Imperative Generators (Never hand-type boilerplate YAML on CKA)
+\`\`\`bash
+export do="--dry-run=client -o yaml"
+export now="--force --grace-period=0"
+
+# Generate Pod, Deployment, Service in seconds:
+kubectl run web --image=nginx:1.27 --port=80 $do > pod.yaml
+kubectl create deploy api --image=registry.k8s.io/pause:3.9 --replicas=3 $do > deploy.yaml
+kubectl expose deploy api --port=8080 --target-port=8080 --type=NodePort $do > svc.yaml
+\`\`\`
+
+### 2. etcd Backup & Restore on \`cp-node-01\`
+Always check \`/etc/kubernetes/manifests/etcd.yaml\` for exact cert paths:
+\`\`\`bash
+ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 \\
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \\
+  --cert=/etc/kubernetes/pki/etcd/server.crt \\
+  --key=/etc/kubernetes/pki/etcd/server.key \\
+  snapshot save /var/lib/backup/snapshot.db
+
+# Restore to a NEW directory so permissions/locks don't conflict:
+ETCDCTL_API=3 etcdctl snapshot restore /var/lib/backup/snapshot.db \\
+  --data-dir=/var/lib/etcd-from-backup
+\`\`\`
+**Exam Gotcha**: After updating \`volumes.hostPath.path\` in \`/etc/kubernetes/manifests/etcd.yaml\`, wait 30–45 seconds for \`kubelet\` to recreate the static \`etcd-cp-node-01\` pod!`,
+          aiSummary: 'Covers high-speed CKA imperative aliases ($do, $now) and exact TLS flags for etcdctl snapshot save/restore on cp-node-01.',
+          aiFlashcards: [
+            {
+              q: 'Which file on cp-node-01 holds the exact --trusted-ca-file and --cert-file paths for stacked etcd?',
+              a: '/etc/kubernetes/manifests/etcd.yaml (static Pod manifest watched by kubelet).'
+            },
+            {
+              q: 'Why should you restore an etcd snapshot to a brand-new hostPath directory like /var/lib/etcd-from-backup?',
+              a: 'Restoring into a fresh directory avoids file lock conflicts with the running etcd pod and lets you atomically flip volumes.hostPath.path in etcd.yaml.'
+            }
+          ]
+        },
+        {
+          id: 'note-2',
+          courseId: 'az-104',
+          title: 'AZ-104 Networking & Storage Exam Traps: VNet Peering, NSGs, ASGs & Storage Redundancy',
+          tags: ['VNet', 'peering', 'NSG', 'Storage', 'GRS', 'AZ-104'],
+          r2Key: 'r2://study-hub-assets/az104/hub-spoke-peering-matrix.json',
+          r2Name: 'hub-spoke-peering-matrix.json (6.8 KB in R2)',
+          updatedAt: '2026-10-14',
+          content: `### 1. VNet Peering Non-Transitivity & Gateway Transit Flags
+- **Peering is NEVER transitive**: If \`VNet-A <-> VNet-Hub\` and \`VNet-B <-> VNet-Hub\`, \`VNet-A\` cannot talk to \`VNet-B\` unless you deploy an NVA / Azure Firewall in \`VNet-Hub\` + User-Defined Routes (\`0.0.0.0/0\` or spoke CIDR -> Virtual Appliance IP) AND enable **Allow forwarded traffic** on the peerings.
+- **Shared VPN/ExpressRoute Gateway**:
+  - On **Hub VNet**: Enable \`Allow gateway transit\`
+  - On **Spoke VNet**: Enable \`Use remote gateways\` (Spoke cannot have its own gateway!).
+
+### 2. Storage Redundancy Conversion Rules
+- **LRS / ZRS / GRS / GZRS**:
+  - Converting between **LRS <-> GRS / RA-GRS** can be done directly in Portal/CLI.
+  - Converting **LRS -> ZRS or GZRS** requires a **live migration** (customer-initiated or Microsoft support) because data must be striped across 3 physical Availability Zones!`,
+          aiSummary: 'Highlights AZ-104 exam traps around non-transitive VNet peering, Gateway Transit flags, and ZRS storage conversion constraints.',
+          aiFlashcards: [
+            {
+              q: 'Which peering flag must be enabled on the Spoke VNet so it can route traffic through an NVA firewall in the Hub VNet?',
+              a: '"Allow forwarded traffic" (allows traffic not originating from inside the peered VNet).'
+            },
+            {
+              q: 'Can a Spoke VNet enable "Use remote gateways" if it already contains its own VPN Gateway?',
+              a: 'No — a VNet using a remote gateway cannot have its own virtual network gateway.'
+            }
+          ]
+        },
+        {
+          id: 'note-3',
+          courseId: 'az-305',
+          title: 'AZ-305 Architect Decision Matrix: Load Balancers, Messaging & Database Selection',
+          tags: ['AZ-305', 'Front Door', 'Cosmos DB', 'SQL', 'Service Bus'],
+          r2Key: 'r2://study-hub-assets/az305/architect-decision-tree.md',
+          r2Name: 'architect-decision-tree.md (8.1 KB in R2)',
+          updatedAt: '2026-10-15',
+          content: `### 1. Load Balancing Decision Tree (4 Services)
+| Requirement | Correct Service |
+| :--- | :--- |
+| Global HTTP/HTTPS + WAF + CDN + SSL Offload | **Azure Front Door** |
+| Global DNS-level routing (any protocol/port) | **Azure Traffic Manager** |
+| Regional HTTP/HTTPS + URL path/host routing + WAF | **Azure Application Gateway v2** |
+| Regional Layer-4 TCP/UDP high-throughput / HA Ports | **Azure Standard Load Balancer** |
+
+### 2. Messaging vs Eventing (AZ-305 Favourite Question)
+- **Transactional enterprise queues** (FIFO, duplicate detection, dead-lettering, sessions, >64KB up to 100MB) -> **Azure Service Bus**
+- **Simple high-capacity queue (>80 GB)** for decoupled workers -> **Azure Queue Storage**
+- **Reactive pub/sub events** (Blob created, resource modified, serverless push) -> **Azure Event Grid**
+- **Big-data telemetry stream ingestion** (millions of events/sec, Kafka compatible, replayable partition offset) -> **Azure Event Hubs**`,
+          aiSummary: 'Compares Azure Front Door, Traffic Manager, Application Gateway, and Load Balancer alongside Service Bus vs Event Grid vs Event Hubs.',
+          aiFlashcards: [
+            {
+              q: 'Which Azure messaging service guarantees FIFO ordering via message sessions and supports dead-letter queues for financial transactions?',
+              a: 'Azure Service Bus (Standard/Premium).'
+            },
+            {
+              q: 'When should you recommend Azure Traffic Manager over Azure Front Door?',
+              a: 'When routing non-HTTP/S protocols (e.g., custom TCP/UDP ports) globally via DNS without reverse-proxy termination.'
+            }
+          ]
+        }
+      ],
+      mockExams: [
+        {
+          id: 'mock-1',
+          courseId: 'az-104',
+          provider: 'Microsoft Learn Official Practice Assessment',
+          scorePct: 76,
+          rawScore: '760 / 1000',
+          weakDomain: 'Implement & Manage Virtual Networking',
+          date: '2026-10-13'
+        },
+        {
+          id: 'mock-2',
+          courseId: 'az-305',
+          provider: 'Microsoft Learn AZ-305 Practice Assessment',
+          scorePct: 71,
+          rawScore: '710 / 1000',
+          weakDomain: 'Design Business Continuity (HA/DR/RPO/RTO)',
+          date: '2026-10-14'
+        },
+        {
+          id: 'mock-3',
+          courseId: 'cka-k8s',
+          provider: 'Udemy KodeKloud Mock Exam #1 (on 3-Node Cluster)',
+          scorePct: 74,
+          rawScore: '74% (Pass >= 66%)',
+          weakDomain: 'Services & Networking (NetworkPolicy + Ingress)',
+          date: '2026-10-15'
+        }
+      ]
+    };
+
+    const OFFICIAL_DOCS_INDEX = [
+      {
+        title: 'Study Guide for Exam AZ-104: Microsoft Azure Administrator',
+        course: 'AZ-104',
+        keywords: 'az-104 study guide syllabus domains weights identities storage compute networking monitoring',
+        snippet: 'Official Microsoft Learn exam blueprint: Identities & Governance (20-25%), Storage (15-20%), Compute (20-25%), Virtual Networking (15-20%), Monitoring & Backup (10-15%).',
+        url: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-104'
+      },
+      {
+        title: 'AZ-104 Microsoft Azure Administrator Official Hands-On Labs (GitHub)',
+        course: 'AZ-104',
+        keywords: 'az-104 labs github entra id rbac vnet peering nsg storage aks backup monitor',
+        snippet: 'Step-by-step hosted instructions for all official AZ-104 labs (Lab 01 Entra ID through Lab 11 Monitoring).',
+        url: 'https://microsoftlearning.github.io/AZ-104-MicrosoftAzureAdministrator/'
+      },
+      {
+        title: 'Study Guide for Exam AZ-305: Designing Microsoft Azure Infrastructure Solutions',
+        course: 'AZ-305',
+        keywords: 'az-305 study guide architect identity governance data storage sql cosmos db business continuity ha dr front door',
+        snippet: 'Official AZ-305 blueprint covering Identity/Governance/Monitoring (25-30%), Data Storage (20-25%), Business Continuity (15-20%), and Infrastructure (30-35%).',
+        url: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-305'
+      },
+      {
+        title: 'AZ-305 Official Architect Case Studies (Fabrikam & Enterprise BI)',
+        course: 'AZ-305',
+        keywords: 'az-305 case studies fabrikam governance networking storage migration landing zone',
+        snippet: 'Real-world architecture design case studies published by Microsoft Learning for AZ-305 exam preparation.',
+        url: 'https://microsoftlearning.github.io/AZ-305-DesigningMicrosoftAzureInfrastructureSolutions/'
+      },
+      {
+        title: 'Kubernetes Docs: Operating etcd Clusters for Kubernetes (Backup & Restore)',
+        course: 'CKA',
+        keywords: 'cka etcd snapshot save restore cacert cert key data-dir static pod control plane',
+        snippet: 'Authoritative reference for backing up and restoring an etcd cluster using etcdctl snapshot save and etcdutl/etcdctl snapshot restore.',
+        url: 'https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/'
+      },
+      {
+        title: 'Kubernetes Docs: Upgrading kubeadm Clusters',
+        course: 'CKA',
+        keywords: 'cka kubeadm upgrade plan apply node drain uncordon kubelet kubectl 3-node cluster',
+        snippet: 'Step-by-step checklist for upgrading control-plane and worker nodes in a kubeadm cluster without workload downtime.',
+        url: 'https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/'
+      },
+      {
+        title: 'Killer.sh Official CKA Exam Simulator',
+        course: 'CKA',
+        keywords: 'cka killer.sh simulator troubleshooting networkpolicy rbac ingress gateway api',
+        snippet: 'Official Linux Foundation CKA exam simulator with realistic multi-node clusters and 120-minute scenario challenges.',
+        url: 'https://killer.sh/cka'
+      },
+      {
+        title: 'Cloudflare Pages Functions Bindings (D1, R2, Workers AI)',
+        course: 'CLOUDFLARE',
+        keywords: 'cloudflare pages functions d1 sql r2 bucket workers ai wrangler.toml bindings',
+        snippet: 'Configure D1 serverless SQL, R2 object buckets, and Workers AI bindings in wrangler.toml for Cloudflare Pages.',
+        url: 'https://developers.cloudflare.com/pages/functions/bindings/'
+      }
+    ];
+
+    const CF_FILES = {
+      wrangler: `name = "azure-cka-study-hub"
+pages_build_output_dir = "public"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 1. Cloudflare D1 Serverless SQL Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "study_command_center_db"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+# 2. Cloudflare R2 Object Storage Binding (Diagrams, Kubeconfigs, YAML Manifests)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "study-hub-assets"
+
+# 3. Cloudflare Workers AI Binding (Pre/Post-Processing & BGE Semantic Search)
+[ai]
+binding = "AI"`,
+      schema: `-- Execute: npx wrangler d1 execute study_command_center_db --remote --file=./schema.sql
+CREATE TABLE IF NOT EXISTS courses (
+  id TEXT PRIMARY KEY, code TEXT NOT NULL, title TEXT NOT NULL,
+  provider TEXT NOT NULL, color TEXT NOT NULL, target_date TEXT NOT NULL,
+  target_hours REAL DEFAULT 40, passing_score TEXT, domains_json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS decisions (
+  id TEXT PRIMARY KEY, title TEXT NOT NULL, rationale TEXT NOT NULL,
+  course_id TEXT, target_date TEXT, completed INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS study_logs (
+  id TEXT PRIMARY KEY, course_id TEXT NOT NULL, domain_name TEXT NOT NULL,
+  activity_type TEXT NOT NULL, hours REAL NOT NULL, session_date TEXT NOT NULL,
+  reflection TEXT, ai_takeaway TEXT
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+  id TEXT PRIMARY KEY, course_id TEXT NOT NULL, title TEXT NOT NULL,
+  content TEXT NOT NULL, tags_json TEXT, ai_summary TEXT,
+  ai_flashcards_json TEXT, r2_asset_key TEXT, r2_asset_name TEXT, updated_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS challenges (
+  id TEXT PRIMARY KEY, course_id TEXT NOT NULL, domain TEXT NOT NULL,
+  difficulty TEXT NOT NULL, est_minutes INTEGER, title TEXT NOT NULL,
+  scenario TEXT NOT NULL, tasks_json TEXT NOT NULL, cli_verification TEXT NOT NULL,
+  source_title TEXT NOT NULL, source_url TEXT NOT NULL, completed INTEGER DEFAULT 0
+);`,
+      worker: `// /functions/api/[[route]].js — Cloudflare Pages Function with D1 + R2 + Workers AI
+export async function onRequest({ request, env }) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/^\\/api\\/?/, "");
+
+  // 1. Workers AI Pre-Processing: Clean & Tag Raw Study Notes + Compute BGE Embeddings
+  if (path === "ai/preprocess-note" && request.method === "POST") {
+    const { rawText, courseCode } = await request.json();
+    const structured = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+      messages: [
+        { role: "system", content: "Format raw cloud/K8s study notes into clean Markdown with CLI blocks and exam gotchas." },
+        { role: "user", content: \`[\${courseCode}] \${rawText}\` }
+      ]
+    });
+    const embeddings = await env.AI.run("@cf/baai/bge-base-en-v1.5", { text: [rawText] });
+    return Response.json({ structured, vectorDim: embeddings.data[0].length });
+  }
+
+  // 2. Workers AI Post-Processing: Generate Active-Recall Flashcards & Readiness Audit
+  if (path === "ai/postprocess-note" && request.method === "POST") {
+    const { noteTitle, noteContent, courseCode } = await request.json();
+    const flashcards = await env.AI.run("@cf/meta/llama-3.1-8b-instruct", {
+      messages: [
+        { role: "system", content: "Generate 3 high-yield exam flashcards and 1 verification CLI command." },
+        { role: "user", content: \`\${courseCode}: \${noteTitle}\\n\${noteContent}\` }
+      ]
+    });
+    return Response.json({ flashcards });
+  }
+
+  // 3. R2 Object Storage: Upload or Fetch Architecture Diagrams & YAML Manifests
+  if (path.startsWith("r2/")) {
+    const key = path.slice(3);
+    if (request.method === "PUT") {
+      await env.BUCKET.put(key, await request.arrayBuffer());
+      return Response.json({ stored: true, key });
+    }
+    const obj = await env.BUCKET.get(key);
+    return obj ? new Response(obj.body) : new Response("Not Found", { status: 404 });
+  }
+
+  // 4. D1 SQL Sync for Study Logs, Notes, and Courses
+  if (path === "state" && request.method === "GET") {
+    const courses = await env.DB.prepare("SELECT * FROM courses").all();
+    const logs = await env.DB.prepare("SELECT * FROM study_logs ORDER BY session_date DESC").all();
+    return Response.json({ courses: courses.results, logs: logs.results });
+  }
+
+  return Response.json({ ok: true, edge: "Cloudflare Pages + D1 + R2 + AI" });
+}`,
+      deploy: `# 1. Install Wrangler & Authenticate
+npm install -D wrangler
+npx wrangler login
+
+# 2. Create Cloudflare D1 Database & Initialize Schema
+npx wrangler d1 create study_command_center_db
+# Paste the returned database_id into wrangler.toml, then run:
+npx wrangler d1 execute study_command_center_db --remote --file=./schema.sql
+
+# 3. Create Cloudflare R2 Bucket for Study Assets & YAML Labs
+npx wrangler r2 bucket create study-hub-assets
+
+# 4. Run Local Edge Preview with D1, R2, and Workers AI Bindings
+npx wrangler pages dev public --d1 DB=study_command_center_db --r2 BUCKET=study-hub-assets --ai AI
+
+# 5. Deploy to Production on Cloudflare Pages
+npx wrangler pages deploy public --project-name azure-cka-study-hub`
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          return Object.assign({}, DEFAULT_STATE, parsed);
+        }
+      } catch (e) {
+        // Fallback to in-memory default state
+      }
+      return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
+
+    let state = loadState();
+    let activeCfTab = 'wrangler';
+    let chartHoursInstance = null;
+    let chartDomainInstance = null;
+
+    let timerTotalSeconds = 25 * 60;
+    let timerRemainingSeconds = 25 * 60;
+    let timerInterval = null;
+    let timerRunning = false;
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // Ignore storage quota errors in sandboxed iframes
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+      const el = document.createElement('div');
+      const colorMap = {
+        info: 'border-sky-500/40 bg-slate-900/95 text-sky-200',
+        success: 'border-emerald-500/40 bg-slate-900/95 text-emerald-200',
+        ai: 'border-amber-500/40 bg-slate-900/95 text-amber-200'
+      };
+      el.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs font-medium flex items-center gap-2 transition-all duration-200 ${colorMap[type] || colorMap.info}`;
+      el.innerHTML = `<span class="w-2 h-2 rounded-full bg-current shrink-0"></span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 250);
+      }, 3200);
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function copyTextToClipboard(text, label = 'Copied to clipboard') {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => showToast(label, 'success')).catch(() => fallbackCopy(text, label));
+      } else {
+        fallbackCopy(text, label);
+      }
+    }
+
+    function fallbackCopy(text, label) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(label, 'success');
+      } catch (e) {
+        showToast('Ready to copy', 'info');
+      }
+      ta.remove();
+    }
+
+    function getCourseById(courseId) {
+      return state.courses.find(c => c.id === courseId) || state.courses[0];
+    }
+
+    function getCourseHours(courseId) {
+      return state.studyLogs
+        .filter(l => l.courseId === courseId)
+        .reduce((sum, l) => sum + (parseFloat(l.hours) || 0), 0);
+    }
+
+    function getCourseReadiness(course) {
+      if (!course || !course.domains || !course.domains.length) return 70;
+      const totalWeight = course.domains.reduce((s, d) => s + (d.weight || 20), 0);
+      const weightedSum = course.domains.reduce((s, d) => s + (d.mastery * (d.weight || 20)), 0);
+      return Math.round(weightedSum / (totalWeight || 100));
+    }
+
+    function getBadgeClasses(color) {
+      const map = {
+        sky: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
+        indigo: 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+        emerald: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+        amber: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+        rose: 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+      };
+      return map[color] || map.sky;
+    }
+
+    function switchNav(targetNav) {
+      state.activeNav = targetNav;
+      saveState();
+
+      document.querySelectorAll('.view-section').forEach(sec => {
+        sec.classList.toggle('hidden', sec.id !== `view-${targetNav}`);
+      });
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        const isCurrent = btn.getAttribute('data-nav') === targetNav;
+        btn.className = isCurrent
+          ? 'nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-sky-500/15 text-sky-300 border border-sky-500/30'
+          : 'nav-tab px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900 border border-transparent';
+      });
+
+      renderAll();
+    }
+
+    function populateCourseDropdowns() {
+      const courseOptionsHtml = state.courses
+        .map(c => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.code)} — ${escapeHtml(c.title)}</option>`)
+        .join('');
+
+      const filterOptionsHtml = `<option value="all">All Courses (${state.courses.map(c => c.code).join(' + ')})</option>` + courseOptionsHtml;
+
+      ['timerCourseSelect', 'logCourseId', 'noteCourseSelect', 'mockCourseSelect', 'decisionCourseSelect', 'customLabCourse', 'chartDomainCourseSelect'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const prev = el.value;
+        el.innerHTML = courseOptionsHtml;
+        if (prev && state.courses.some(c => c.id === prev)) el.value = prev;
+      });
+
+      ['filterLogsCourse', 'filterChallengeCourse', 'notesCourseFilter'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const prev = el.value || 'all';
+        el.innerHTML = filterOptionsHtml;
+        el.value = prev;
+      });
+
+      updateLogDomainsDropdown();
+    }
+
+    function updateLogDomainsDropdown() {
+      const courseId = document.getElementById('logCourseId')?.value || state.courses[0]?.id;
+      const course = getCourseById(courseId);
+      const domSelect = document.getElementById('logDomainName');
+      if (!domSelect || !course) return;
+      domSelect.innerHTML = (course.domains || [])
+        .map(d => `<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)} (${d.weight}%)</option>`)
+        .join('');
+    }
+
+    function renderOverview() {
+      const decGrid = document.getElementById('decisionsGrid');
+      if (decGrid) {
+        decGrid.innerHTML = state.decisions.map(dec => {
+          const course = getCourseById(dec.courseId);
+          return `
+            <div class="rounded-xl bg-slate-950/85 border ${dec.completed ? 'border-emerald-500/40' : 'border-slate-800'} p-4 flex flex-col justify-between gap-3">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code || 'PACT')}</span>
+                  <span class="text-[11px] font-mono text-slate-400">Due ${escapeHtml(dec.targetDate)}</span>
+                </div>
+                <h3 class="text-xs sm:text-sm font-bold text-white mt-2 ${dec.completed ? 'line-through text-slate-400' : ''}">${escapeHtml(dec.title)}</h3>
+                <p class="text-[11px] text-slate-400 mt-1 leading-relaxed">${escapeHtml(dec.rationale)}</p>
+              </div>
+              <div class="flex items-center justify-between pt-2 border-t border-slate-900">
+                <button type="button" data-toggle-decision="${escapeHtml(dec.id)}" class="text-[11px] font-semibold flex items-center gap-1.5 ${dec.completed ? 'text-emerald-400' : 'text-sky-400 hover:text-sky-300'}">
+                  <i data-lucide="${dec.completed ? 'check-circle-2' : 'circle'}" class="w-3.5 h-3.5"></i>
+                  <span>${dec.completed ? 'Commitment Verified' : 'Mark Milestone Active/Done'}</span>
+                </button>
+                <button type="button" data-delete-decision="${escapeHtml(dec.id)}" class="text-[11px] text-slate-500 hover:text-rose-400" title="Remove decision">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const totalHours = state.studyLogs.reduce((s, l) => s + (parseFloat(l.hours) || 0), 0);
+      const totalTarget = state.courses.reduce((s, c) => s + (parseFloat(c.targetHours) || 40), 0);
+      document.getElementById('kpiTotalHours').textContent = totalHours.toFixed(1) + 'h';
+      document.getElementById('kpiTargetHoursLabel').textContent = `/ ${totalTarget}h target`;
+
+      const azHoursDone = getCourseHours('az-104') + getCourseHours('az-305');
+      const azTarget = (getCourseById('az-104')?.targetHours || 45) + (getCourseById('az-305')?.targetHours || 40);
+      const azRemaining = Math.max(0, azTarget - azHoursDone);
+      const dailyNeeded = (azRemaining / 16).toFixed(1);
+      document.getElementById('kpiPaceText').textContent = `${dailyNeeded}h/day needed to finish AZ-104 & AZ-305 by Oct 31`;
+
+      const completedLabs = state.challenges.filter(c => c.completed).length;
+      document.getElementById('kpiCompletedLabs').textContent = `${completedLabs} / ${state.challenges.length}`;
+      const allTasks = state.challenges.reduce((s, c) => s + c.tasks.length, 0);
+      const doneTasks = state.challenges.reduce((s, c) => s + c.tasks.filter(t => t.done).length, 0);
+      const taskPct = allTasks ? Math.round((doneTasks / allTasks) * 100) : 0;
+      document.getElementById('kpiLabTasksPct').textContent = `${doneTasks}/${allTasks} (${taskPct}%) lab tasks verified`;
+      document.getElementById('navBadgeChallenges').textContent = state.challenges.length;
+
+      const avgReadiness = Math.round(
+        state.courses.reduce((s, c) => s + getCourseReadiness(c), 0) / (state.courses.length || 1)
+      );
+      document.getElementById('kpiReadinessAvg').textContent = `${avgReadiness}%`;
+      document.getElementById('kpiNotesCount').textContent = state.notes.length;
+      const r2Count = state.notes.filter(n => n.r2Key).length;
+      document.getElementById('kpiR2Count').textContent = `notes · ${r2Count} R2 objects`;
+
+      const coursesList = document.getElementById('overviewCoursesList');
+      if (coursesList) {
+        coursesList.innerHTML = state.courses.map(course => {
+          const hrs = getCourseHours(course.id);
+          const pctHrs = Math.min(100, Math.round((hrs / (course.targetHours || 40)) * 100));
+          const readiness = getCourseReadiness(course);
+          const labsTotal = state.challenges.filter(ch => ch.courseId === course.id).length;
+          const labsDone = state.challenges.filter(ch => ch.courseId === course.id && ch.completed).length;
+          return `
+            <div class="rounded-2xl bg-slate-900/95 border border-slate-800 hover:border-slate-700 p-4 flex flex-col justify-between gap-3 transition">
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${getBadgeClasses(course.color)}">${escapeHtml(course.code)}</span>
+                  <span class="text-[11px] font-mono text-slate-400">Target: ${escapeHtml(course.targetDate)}</span>
+                </div>
+                <h4 class="text-sm font-bold text-white mt-2">${escapeHtml(course.title)}</h4>
+                <p class="text-[11px] text-slate-400 mt-0.5">${escapeHtml(course.provider)}</p>
+
+                <div class="mt-3 space-y-2">
+                  <div>
+                    <div class="flex justify-between text-[11px] mb-1">
+                      <span class="text-slate-400">Hours Invested</span>
+                      <span class="font-mono text-slate-200">${hrs.toFixed(1)}h / ${course.targetHours}h (${pctHrs}%)</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                      <div class="h-full bg-sky-500 rounded-full" style="width: ${pctHrs}%"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="flex justify-between text-[11px] mb-1">
+                      <span class="text-slate-400">Weighted Exam Readiness</span>
+                      <span class="font-mono text-emerald-400 font-semibold">${readiness}% · ${labsDone}/${labsTotal} Labs</span>
+                    </div>
+                    <div class="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden">
+                      <div class="h-full bg-emerald-500 rounded-full" style="width: ${readiness}%"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+                <button type="button" data-course-jump-labs="${escapeHtml(course.id)}" class="text-amber-300 hover:underline font-medium">Practice Labs →</button>
+                <button type="button" data-course-jump-hours="${escapeHtml(course.id)}" class="text-sky-400 hover:underline font-medium">+ Log Hours</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      renderClusterTopology();
+      renderSpotlightChallenge();
+      renderOverviewCharts();
+    }
+
+    function renderClusterTopology() {
+      const mode = document.getElementById('clusterSimMode')?.value || 'healthy';
+      const container = document.getElementById('clusterNodesContainer');
+      const cliEl = document.getElementById('clusterQuickCli');
+      if (!container || !cliEl) return;
+
+      const nodes = [
+        {
+          name: 'cp-node-01',
+          role: 'control-plane',
+          ip: '192.168.56.10',
+          pods: 'etcd, kube-apiserver, scheduler, controller-mgr',
+          status: mode === 'drill-etcd' ? 'Restoring etcd Snapshot' : (mode === 'drill-upgrade' ? 'Upgrading v1.32.0' : 'Ready (v1.31.1)'),
+          healthy: mode === 'healthy'
+        },
+        {
+          name: 'worker-node-01',
+          role: 'worker',
+          ip: '192.168.56.21',
+          pods: 'calico-node, kube-proxy, ingress-nginx, app-workloads',
+          status: mode === 'drill-upgrade' ? 'Cordoned / Draining' : 'Ready (v1.31.1)',
+          healthy: mode !== 'drill-upgrade'
+        },
+        {
+          name: 'worker-node-02',
+          role: 'worker',
+          ip: '192.168.56.22',
+          pods: 'calico-node, kube-proxy, csi-node, db-tier',
+          status: mode === 'drill-wk2' ? 'NotReady (kubelet stopped)' : 'Ready (v1.31.1)',
+          healthy: mode !== 'drill-wk2'
+        }
+      ];
+
+      container.innerHTML = nodes.map(n => `
+        <div class="rounded-xl bg-slate-950 border ${n.healthy ? 'border-slate-800' : 'border-amber-500/50'} p-2.5 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full ${n.healthy ? 'bg-emerald-400' : 'bg-amber-400 animate-ping'}"></span>
+              <span class="text-xs font-mono font-bold text-white">${n.name}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">${n.ip}</span>
+            </div>
+            <p class="text-[10px] text-slate-400 truncate mt-0.5">${n.pods}</p>
+          </div>
+          <span class="text-[10px] font-mono px-2 py-0.5 rounded ${n.healthy ? 'bg-emerald-500/10 text-emerald-300' : 'bg-amber-500/20 text-amber-300'} shrink-0">${n.status}</span>
+        </div>
+      `).join('');
+
+      const cliMap = {
+        'healthy': 'kubectl get nodes -o wide && kubectl get pods -A -o wide',
+        'drill-wk2': 'ssh worker-node-02 "sudo systemctl status kubelet && sudo journalctl -u kubelet -n 25 --no-pager"',
+        'drill-etcd': 'ETCDCTL_API=3 etcdctl --endpoints=https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key endpoint health',
+        'drill-upgrade': 'kubectl drain worker-node-01 --ignore-daemonsets --delete-emptydir-data && sudo kubeadm upgrade plan'
+      };
+      cliEl.textContent = cliMap[mode] || cliMap.healthy;
+    }
+
+    function renderSpotlightChallenge() {
+      const body = document.getElementById('spotlightCardBody');
+      if (!body || !state.challenges.length) return;
+      const idx = state.spotlightIndex % state.challenges.length;
+      const ch = state.challenges[idx];
+      const course = getCourseById(ch.courseId);
+      const doneCount = ch.tasks.filter(t => t.done).length;
+      body.innerHTML = `
+        <div class="flex items-center gap-2 text-xs">
+          <span class="px-2 py-0.5 rounded font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+          <span class="text-slate-400 font-mono">${ch.estMinutes}m · ${doneCount}/${ch.tasks.length} steps</span>
+        </div>
+        <h4 class="text-sm font-bold text-white leading-snug">${escapeHtml(ch.title)}</h4>
+        <p class="text-xs text-slate-300 line-clamp-3">${escapeHtml(ch.scenario)}</p>
+        <div class="text-[11px] text-amber-300/90 font-mono bg-slate-950/90 border border-slate-800 rounded-lg px-2.5 py-1.5 truncate">
+          ${escapeHtml(ch.environmentNote)}
+        </div>
+      `;
+    }
+
+    function renderOverviewCharts() {
+      if (typeof Chart === 'undefined') return;
+
+      const ctxHours = document.getElementById('chartHoursByCourse');
+      if (ctxHours) {
+        if (chartHoursInstance) chartHoursInstance.destroy();
+        const labels = state.courses.map(c => c.code);
+        const loggedData = state.courses.map(c => Number(getCourseHours(c.id).toFixed(1)));
+        const targetData = state.courses.map(c => c.targetHours);
+
+        chartHoursInstance = new Chart(ctxHours, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Hours Logged',
+                data: loggedData,
+                backgroundColor: ['#38bdf8', '#818cf8', '#34d399', '#fbbf24'],
+                borderRadius: 6
+              },
+              {
+                label: 'Target Hours',
+                data: targetData,
+                backgroundColor: 'rgba(148, 163, 184, 0.18)',
+                borderRadius: 6
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { color: '#cbd5e1', font: { size: 11 } } }
+            },
+            scales: {
+              x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+              y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+            }
+          }
+        });
+      }
+
+      const ctxDom = document.getElementById('chartDomainMastery');
+      const selCourseId = document.getElementById('chartDomainCourseSelect')?.value || state.courses[0]?.id;
+      const course = getCourseById(selCourseId);
+      if (ctxDom && course) {
+        if (chartDomainInstance) chartDomainInstance.destroy();
+        chartDomainInstance = new Chart(ctxDom, {
+          type: 'bar',
+          data: {
+            labels: course.domains.map(d => d.name.length > 24 ? d.name.slice(0, 24) + '…' : d.name),
+            datasets: [
+              {
+                label: 'Mastery %',
+                data: course.domains.map(d => d.mastery),
+                backgroundColor: '#38bdf8',
+                borderRadius: 5
+              }
+            ]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { min: 0, max: 100, ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } },
+              y: { ticks: { color: '#e2e8f0', font: { size: 10 } }, grid: { display: false } }
+            }
+          }
+        });
+      }
+    }
+
+    function renderHoursView() {
+      const cardsEl = document.getElementById('hoursSummaryCards');
+      if (cardsEl) {
+        cardsEl.innerHTML = state.courses.map(c => {
+          const hrs = getCourseHours(c.id);
+          const rem = Math.max(0, c.targetHours - hrs);
+          const sessionsCount = state.studyLogs.filter(l => l.courseId === c.id).length;
+          return `
+            <div class="rounded-2xl bg-slate-900 border border-slate-800 p-4 flex items-center justify-between">
+              <div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${getBadgeClasses(c.color)}">${escapeHtml(c.code)}</span>
+                <div class="text-xl font-extrabold text-white mt-1.5 font-mono">${hrs.toFixed(2)} hrs</div>
+                <p class="text-[11px] text-slate-400">${sessionsCount} sessions · ${rem.toFixed(1)}h remaining to goal</p>
+              </div>
+              <div class="text-right font-mono text-xs text-slate-400">
+                <div>Target: ${c.targetHours}h</div>
+                <div class="text-emerald-400 mt-1">${Math.min(100, Math.round((hrs / c.targetHours) * 100))}%</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const filterCourse = document.getElementById('filterLogsCourse')?.value || 'all';
+      const tbody = document.getElementById('studyLogsTableBody');
+      if (tbody) {
+        const logs = state.studyLogs
+          .filter(l => filterCourse === 'all' || l.courseId === filterCourse)
+          .slice()
+          .reverse();
+
+        tbody.innerHTML = logs.map(l => {
+          const course = getCourseById(l.courseId);
+          return `
+            <tr class="hover:bg-slate-950/60">
+              <td class="py-3 px-3 font-mono text-slate-300 whitespace-nowrap">${escapeHtml(l.date)}</td>
+              <td class="py-3 px-3 whitespace-nowrap">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+              </td>
+              <td class="py-3 px-3 text-slate-300">${escapeHtml(l.domain)}</td>
+              <td class="py-3 px-3 text-slate-400">${escapeHtml(l.activityType)}</td>
+              <td class="py-3 px-3 text-slate-300 max-w-md">
+                <div>${escapeHtml(l.reflection || '—')}</div>
+                ${l.aiTakeaway ? `<div class="mt-1 text-[11px] text-amber-300 font-mono">⚡ AI: ${escapeHtml(l.aiTakeaway)}</div>` : ''}
+              </td>
+              <td class="py-3 px-3 text-right font-mono font-bold text-sky-300 whitespace-nowrap">${Number(l.hours).toFixed(2)}h</td>
+              <td class="py-3 px-3 text-right">
+                <button type="button" data-delete-log="${escapeHtml(l.id)}" class="text-slate-500 hover:text-rose-400 text-xs">Delete</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderChallengesView() {
+      const courseFilter = document.getElementById('filterChallengeCourse')?.value || 'all';
+      const statusFilter = document.getElementById('filterChallengeStatus')?.value || 'all';
+
+      const filtered = state.challenges.filter(ch => {
+        if (courseFilter !== 'all' && ch.courseId !== courseFilter) return false;
+        if (statusFilter === 'pending' && ch.completed) return false;
+        if (statusFilter === 'completed' && !ch.completed) return false;
+        return true;
+      });
+
+      const listCol = document.getElementById('challengesListCol');
+      if (listCol) {
+        if (!filtered.length) {
+          listCol.innerHTML = `<div class="rounded-xl bg-slate-900 border border-slate-800 p-6 text-center text-xs text-slate-400">No labs match the current filter.</div>`;
+        } else {
+          listCol.innerHTML = filtered.map(ch => {
+            const course = getCourseById(ch.courseId);
+            const isSelected = ch.id === state.selectedChallengeId;
+            const doneCount = ch.tasks.filter(t => t.done).length;
+            return `
+              <div data-select-challenge="${escapeHtml(ch.id)}" class="cursor-pointer rounded-2xl p-4 border transition ${
+                isSelected ? 'bg-slate-900 border-amber-500/60 shadow-lg shadow-amber-500/5' : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
+              }">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+                    <span class="text-[11px] text-slate-400 font-mono">${ch.estMinutes}m</span>
+                  </div>
+                  <span class="text-[11px] font-semibold ${ch.completed ? 'text-emerald-400' : 'text-amber-300'}">
+                    ${ch.completed ? '✓ Completed' : `${doneCount}/${ch.tasks.length} steps`}
+                  </span>
+                </div>
+                <h4 class="text-xs sm:text-sm font-bold text-white mt-2">${escapeHtml(ch.title)}</h4>
+                <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">${escapeHtml(ch.scenario)}</p>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      const detailCol = document.getElementById('challengeDetailCol');
+      const current = state.challenges.find(c => c.id === state.selectedChallengeId) || filtered[0] || state.challenges[0];
+      if (detailCol && current) {
+        state.selectedChallengeId = current.id;
+        const course = getCourseById(current.courseId);
+        const doneCount = current.tasks.filter(t => t.done).length;
+        const pct = current.tasks.length ? Math.round((doneCount / current.tasks.length) * 100) : 0;
+
+        detailCol.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-4">
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+              <span class="text-xs text-amber-300 font-medium">${escapeHtml(current.difficulty)}</span>
+              <span class="text-xs text-slate-400 font-mono">· ~${current.estMinutes} mins</span>
+            </div>
+            <button type="button" data-toggle-challenge-complete="${escapeHtml(current.id)}" class="px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+              current.completed ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+            }">
+              ${current.completed ? '✓ Lab Completed (+Hours Logged)' : 'Mark Lab Complete & Log Hours'}
+            </button>
+          </div>
+
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white">${escapeHtml(current.title)}</h3>
+            <div class="mt-2 rounded-xl bg-slate-950 border border-slate-800 p-3.5 text-xs text-slate-300 leading-relaxed">
+              <div class="font-semibold text-sky-400 mb-1">Scenario &amp; Architecture Goal:</div>
+              ${escapeHtml(current.scenario)}
+              <div class="mt-2 pt-2 border-t border-slate-900 text-[11px] font-mono text-amber-300">
+                Environment: ${escapeHtml(current.environmentNote)}
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-white uppercase tracking-wider">Hands-On Execution Steps (${doneCount}/${current.tasks.length} — ${pct}%)</span>
+              <span class="text-slate-400">Click each task as you execute it</span>
+            </div>
+            <div class="space-y-2">
+              ${current.tasks.map((t, idx) => `
+                <label class="flex items-start gap-3 p-3 rounded-xl bg-slate-950/90 hover:bg-slate-950 border ${t.done ? 'border-emerald-500/30' : 'border-slate-800'} cursor-pointer transition">
+                  <input type="checkbox" data-challenge-task="${escapeHtml(current.id)}" data-task-idx="${idx}" ${t.done ? 'checked' : ''} class="mt-0.5 rounded border-slate-700 text-emerald-500 focus:ring-0" />
+                  <span class="text-xs ${t.done ? 'line-through text-slate-400' : 'text-slate-200'}">${escapeHtml(t.text)}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-400">CLI Verification &amp; Reference Commands</span>
+              <button type="button" data-copy-challenge-cli="${escapeHtml(current.id)}" class="text-xs text-sky-400 hover:text-sky-300 font-semibold flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                <span>Copy Commands</span>
+              </button>
+            </div>
+            <pre class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs font-mono text-emerald-300 overflow-x-auto leading-relaxed">${escapeHtml(current.cliVerification)}</pre>
+          </div>
+
+          <div class="pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <a href="${escapeHtml(current.sourceUrl)}" target="_blank" rel="noopener noreferrer" class="text-sky-400 hover:underline flex items-center gap-1.5 font-medium">
+              <span>Official Reference: ${escapeHtml(current.sourceTitle)}</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            </a>
+            <button type="button" data-lab-to-note="${escapeHtml(current.id)}" class="text-amber-300 hover:underline font-medium">
+              + Send Lab Commands to Smart Notes
+            </button>
+          </div>
+        `;
+      }
+    }
+
+    function renderNotesView() {
+      const courseFilter = document.getElementById('notesCourseFilter')?.value || 'all';
+      const query = (document.getElementById('notesQuickFilter')?.value || '').toLowerCase().trim();
+
+      const filtered = state.notes.filter(n => {
+        if (courseFilter !== 'all' && n.courseId !== courseFilter) return false;
+        if (query) {
+          const hay = `${n.title} ${n.content} ${(n.tags || []).join(' ')}`.toLowerCase();
+          return hay.includes(query);
+        }
+        return true;
+      });
+
+      const listEl = document.getElementById('notesListContainer');
+      if (listEl) {
+        listEl.innerHTML = filtered.map(n => {
+          const course = getCourseById(n.courseId);
+          const isSelected = n.id === state.selectedNoteId;
+          return `
+            <div data-select-note="${escapeHtml(n.id)}" class="cursor-pointer rounded-xl p-3.5 border transition ${
+              isSelected ? 'bg-slate-950 border-sky-500/60' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+            }">
+              <div class="flex items-center justify-between gap-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+                <span class="text-[10px] font-mono text-slate-400">${escapeHtml(n.updatedAt || '2026-10-15')}</span>
+              </div>
+              <h4 class="text-xs font-bold text-white mt-1.5 line-clamp-1">${escapeHtml(n.title)}</h4>
+              <p class="text-[11px] text-slate-400 mt-1 line-clamp-2 font-mono">${escapeHtml(n.content.replace(/[#*`]/g, ''))}</p>
+              <div class="flex flex-wrap gap-1 mt-2">
+                ${(n.tags || []).slice(0, 4).map(t => `<span class="px-1.5 py-0.2 rounded bg-slate-900 text-[10px] text-slate-300 font-mono">#${escapeHtml(t)}</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const activeNote = state.notes.find(n => n.id === state.selectedNoteId) || state.notes[0];
+      if (activeNote) {
+        state.selectedNoteId = activeNote.id;
+        document.getElementById('noteTitleInput').value = activeNote.title;
+        document.getElementById('noteCourseSelect').value = activeNote.courseId;
+        document.getElementById('noteTagsInput').value = (activeNote.tags || []).join(', ');
+        document.getElementById('noteContentInput').value = activeNote.content;
+        document.getElementById('noteR2KeyBadge').textContent = activeNote.r2Key ? `R2 Object: ${activeNote.r2Key}` : 'R2 Object: none attached';
+        document.getElementById('r2AttachmentLabel').textContent = activeNote.r2Name || 'Attach diagram / YAML to R2...';
+
+        const aiPanel = document.getElementById('noteAiOutputPanel');
+        if (aiPanel) {
+          aiPanel.innerHTML = `
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                <span>Workers AI Note Intelligence (Summary &amp; Active Recall Flashcards)</span>
+              </span>
+              <span class="text-[11px] font-mono text-slate-400">@cf/meta/llama-3.1-8b-instruct</span>
+            </div>
+            <p class="text-xs text-slate-200 bg-slate-900/90 border border-slate-800 rounded-lg p-2.5">
+              <strong class="text-sky-300">Exam Anchor:</strong> ${escapeHtml(activeNote.aiSummary || 'Click "AI Pre-Process" or "AI Post-Process" above to synthesize flashcards.')}
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              ${(activeNote.aiFlashcards || []).map((fc, idx) => `
+                <div class="rounded-lg bg-slate-900 border border-slate-800 p-3 space-y-1.5">
+                  <div class="text-[11px] font-bold text-amber-300">Q${idx + 1}: ${escapeHtml(fc.q)}</div>
+                  <div class="text-[11px] text-emerald-300 font-mono">A: ${escapeHtml(fc.a)}</div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      }
+    }
+
+    function renderProgressView() {
+      const container = document.getElementById('progressCoursesContainer');
+      if (container) {
+        container.innerHTML = state.courses.map(course => {
+          const readiness = getCourseReadiness(course);
+          const hrs = getCourseHours(course.id);
+          return `
+            <div class="rounded-2xl bg-slate-900 border border-slate-800 p-5 flex flex-col justify-between space-y-4">
+              <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold border ${getBadgeClasses(course.color)}">${escapeHtml(course.code)}</span>
+                  <span class="text-xs font-mono ${readiness >= 70 ? 'text-emerald-400' : 'text-amber-300'} font-bold">Readiness: ${readiness}%</span>
+                </div>
+                <div>
+                  <h3 class="text-sm font-bold text-white">${escapeHtml(course.title)}</h3>
+                  <p class="text-[11px] text-slate-400">Pass Bar: ${escapeHtml(course.passingScore)} · Logged: ${hrs.toFixed(1)}/${course.targetHours}h</p>
+                </div>
+
+                <div class="space-y-3 pt-2 border-t border-slate-800">
+                  ${course.domains.map((dom, dIdx) => `
+                    <div>
+                      <div class="flex items-center justify-between text-[11px] mb-1">
+                        <span class="text-slate-300 truncate pr-2" title="${escapeHtml(dom.name)}">${escapeHtml(dom.name)} (${dom.weight}%)</span>
+                        <span class="font-mono font-bold text-sky-300 shrink-0">${dom.mastery}%</span>
+                      </div>
+                      <input type="range" min="10" max="100" value="${dom.mastery}" data-domain-slider="${escapeHtml(course.id)}" data-domain-idx="${dIdx}" class="w-full accent-sky-400 cursor-pointer h-1.5 bg-slate-950 rounded-lg" />
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div class="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                <span class="text-slate-400 font-mono">Exam Target: ${escapeHtml(course.targetDate)}</span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-semibold ${readiness >= 70 ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}">
+                  ${readiness >= 70 ? 'On Track to Pass' : 'Needs Hands-On Focus'}
+                </span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const mockList = document.getElementById('mockHistoryList');
+      if (mockList) {
+        mockList.innerHTML = state.mockExams.slice().reverse().map(m => {
+          const course = getCourseById(m.courseId);
+          const passed = m.scorePct >= 70;
+          return `
+            <div class="rounded-xl bg-slate-950 border border-slate-800 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="px-2 py-0.5 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+                  <span class="text-xs font-bold text-white">${escapeHtml(m.provider)}</span>
+                  <span class="text-[11px] font-mono text-slate-400">${escapeHtml(m.date)}</span>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Weakest area flagged: <strong class="text-amber-300">${escapeHtml(m.weakDomain || 'None')}</strong></p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="text-right font-mono">
+                  <div class="text-sm font-extrabold ${passed ? 'text-emerald-400' : 'text-amber-300'}">${m.scorePct}% (${escapeHtml(m.rawScore)})</div>
+                  <div class="text-[10px] text-slate-400">${passed ? 'Above Passing Bar' : 'Review Required'}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function renderSearchView() {
+      const q = (document.getElementById('globalSearchInput')?.value || '').toLowerCase().trim();
+
+      const matchingNotes = state.notes.filter(n => {
+        if (!q) return true;
+        return `${n.title} ${n.content} ${(n.tags || []).join(' ')}`.toLowerCase().includes(q);
+      });
+
+      const matchingLabs = state.challenges.filter(c => {
+        if (!q) return true;
+        return `${c.title} ${c.scenario} ${c.cliVerification} ${c.domain}`.toLowerCase().includes(q);
+      });
+
+      const matchingDocs = OFFICIAL_DOCS_INDEX.filter(d => {
+        if (!q) return true;
+        return `${d.title} ${d.course} ${d.keywords} ${d.snippet}`.toLowerCase().includes(q);
+      });
+
+      document.getElementById('searchCountNotes').textContent = matchingNotes.length;
+      document.getElementById('searchCountLabs').textContent = matchingLabs.length;
+      document.getElementById('searchCountDocs').textContent = matchingDocs.length;
+
+      document.getElementById('searchNotesResults').innerHTML = matchingNotes.map(n => {
+        const course = getCourseById(n.courseId);
+        return `
+          <div data-open-search-note="${escapeHtml(n.id)}" class="cursor-pointer rounded-xl bg-slate-950 border border-slate-800 hover:border-sky-500/50 p-3 space-y-1 transition">
+            <div class="flex items-center justify-between">
+              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+              <span class="text-[10px] text-sky-400">Open Note →</span>
+            </div>
+            <div class="text-xs font-bold text-white">${escapeHtml(n.title)}</div>
+            <p class="text-[11px] text-slate-400 line-clamp-2 font-mono">${escapeHtml(n.content.replace(/[#*`]/g, ''))}</p>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('searchLabsResults').innerHTML = matchingLabs.map(c => {
+        const course = getCourseById(c.courseId);
+        return `
+          <div data-open-search-lab="${escapeHtml(c.id)}" class="cursor-pointer rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500/50 p-3 space-y-1 transition">
+            <div class="flex items-center justify-between">
+              <span class="px-1.5 py-0.2 rounded text-[10px] font-bold border ${getBadgeClasses(course?.color)}">${escapeHtml(course?.code)}</span>
+              <span class="text-[10px] text-amber-300">Open Lab →</span>
+            </div>
+            <div class="text-xs font-bold text-white">${escapeHtml(c.title)}</div>
+            <pre class="text-[10px] font-mono text-emerald-300 truncate bg-slate-900 px-2 py-1 rounded">${escapeHtml(c.cliVerification.split('\n')[0])}</pre>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('searchDocsResults').innerHTML = matchingDocs.map(d => `
+        <a href="${escapeHtml(d.url)}" target="_blank" rel="noopener noreferrer" class="block rounded-xl bg-slate-950 border border-slate-800 hover:border-emerald-500/50 p-3 space-y-1 transition">
+          <div class="flex items-center justify-between">
+            <span class="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">${escapeHtml(d.course)}</span>
+            <span class="text-[10px] text-emerald-400">Official Docs ↗</span>
+          </div>
+          <div class="text-xs font-bold text-white">${escapeHtml(d.title)}</div>
+          <p class="text-[11px] text-slate-400">${escapeHtml(d.snippet)}</p>
+        </a>
+      `).join('');
+    }
+
+    function renderCloudflareView() {
+      const viewer = document.getElementById('cfCodeViewer');
+      if (viewer) {
+        viewer.textContent = CF_FILES[activeCfTab] || CF_FILES.wrangler;
+      }
+    }
+
+    function renderAll() {
+      populateCourseDropdowns();
+      renderOverview();
+      renderHoursView();
+      renderChallengesView();
+      renderNotesView();
+      renderProgressView();
+      renderSearchView();
+      renderCloudflareView();
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    function formatTimer(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateTimerUi() {
+      const formatted = formatTimer(timerRemainingSeconds);
+      const mainEl = document.getElementById('mainTimerDisplay');
+      const headerEl = document.getElementById('headerTimerDisplay');
+      if (mainEl) mainEl.textContent = formatted;
+      if (headerEl) headerEl.textContent = formatted;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderAll();
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchNav(btn.getAttribute('data-nav')));
+      });
+
+      document.getElementById('btnTopSearch')?.addEventListener('click', () => {
+        switchNav('search');
+        setTimeout(() => document.getElementById('globalSearchInput')?.focus(), 50);
+      });
+      document.getElementById('btnHeaderTimer')?.addEventListener('click', () => switchNav('hours'));
+      document.getElementById('btnEdgeStatus')?.addEventListener('click', () => switchNav('cloudflare'));
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          switchNav('search');
+          setTimeout(() => document.getElementById('globalSearchInput')?.focus(), 50);
+        }
+      });
+
+      document.getElementById('clusterSimMode')?.addEventListener('change', renderClusterTopology);
+      document.getElementById('btnCopyClusterCli')?.addEventListener('click', () => {
+        const txt = document.getElementById('clusterQuickCli')?.textContent || '';
+        copyTextToClipboard(txt, 'Copied 3-Node K8s verification command');
+      });
+
+      document.getElementById('chartDomainCourseSelect')?.addEventListener('change', renderOverviewCharts);
+
+      document.getElementById('btnNextSpotlight')?.addEventListener('click', () => {
+        state.spotlightIndex = (state.spotlightIndex + 1) % state.challenges.length;
+        saveState();
+        renderSpotlightChallenge();
+      });
+      document.getElementById('btnQuickSpinChallenge')?.addEventListener('click', () => {
+        state.spotlightIndex = (state.spotlightIndex + 1) % state.challenges.length;
+        const ch = state.challenges[state.spotlightIndex];
+        state.selectedChallengeId = ch.id;
+        saveState();
+        switchNav('challenges');
+        showToast(`Daily Lab Roulette selected: ${ch.title}`, 'ai');
+      });
+      document.getElementById('btnOpenSpotlightLab')?.addEventListener('click', () => {
+        const ch = state.challenges[state.spotlightIndex % state.challenges.length];
+        if (ch) state.selectedChallengeId = ch.id;
+        switchNav('challenges');
+      });
+
+      document.querySelectorAll('.timer-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mins = parseInt(btn.getAttribute('data-timer-mins'), 10) || 25;
+          if (timerInterval) clearInterval(timerInterval);
+          timerRunning = false;
+          timerTotalSeconds = mins * 60;
+          timerRemainingSeconds = mins * 60;
+          document.getElementById('timerModeBadge').textContent = `${mins}m Sprint`;
+          document.getElementById('btnTimerStartLabel').textContent = 'Start Session';
+          updateTimerUi();
+        });
+      });
+
+      document.getElementById('btnTimerStartPause')?.addEventListener('click', () => {
+        if (timerRunning) {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          document.getElementById('btnTimerStartLabel').textContent = 'Resume Session';
+          document.getElementById('timerSubStatus').textContent = 'Session paused';
+        } else {
+          timerRunning = true;
+          document.getElementById('btnTimerStartLabel').textContent = 'Pause Session';
+          document.getElementById('timerSubStatus').textContent = 'Deep-work session active — stay locked in!';
+          timerInterval = setInterval(() => {
+            if (timerRemainingSeconds > 0) {
+              timerRemainingSeconds--;
+              updateTimerUi();
+            } else {
+              clearInterval(timerInterval);
+              timerRunning = false;
+              showToast('Timer complete! Click "Log Elapsed Time" to save your hours.', 'success');
+            }
+          }, 1000);
+        }
+      });
+
+      document.getElementById('btnTimerReset')?.addEventListener('click', () => {
+        if (timerInterval) clearInterval(timerInterval);
+        timerRunning = false;
+        timerRemainingSeconds = timerTotalSeconds;
+        document.getElementById('btnTimerStartLabel').textContent = 'Start Session';
+        document.getElementById('timerSubStatus').textContent = 'Timer reset';
+        updateTimerUi();
+      });
+
+      document.getElementById('btnTimerFinishLog')?.addEventListener('click', () => {
+        const elapsedSeconds = Math.max(900, timerTotalSeconds - timerRemainingSeconds);
+        const hrs = Math.max(0.25, Number((elapsedSeconds / 3600).toFixed(2)));
+        const courseId = document.getElementById('timerCourseSelect')?.value || 'az-104';
+        const course = getCourseById(courseId);
+        state.studyLogs.push({
+          id: 'log-' + Date.now(),
+          courseId,
+          domain: course?.domains?.[0]?.name || 'Core Hands-On Practice',
+          activityType: 'Hands-On Lab (3-Node K8s / Azure Portal)',
+          hours: hrs,
+          date: '2026-10-15',
+          reflection: `Logged ${hrs}h focused timer sprint on ${course?.code}.`,
+          aiTakeaway: 'Consistent daily lab sprints compound into automatic CLI muscle memory.'
+        });
+        saveState();
+        renderAll();
+        showToast(`Logged ${hrs}h toward ${course?.code} in D1 study_logs!`, 'success');
+      });
+
+      document.getElementById('logCourseId')?.addEventListener('change', updateLogDomainsDropdown);
+      document.getElementById('filterLogsCourse')?.addEventListener('change', renderHoursView);
+
+      document.getElementById('btnAiSessionTakeaway')?.addEventListener('click', () => {
+        const course = getCourseById(document.getElementById('logCourseId')?.value);
+        const dom = document.getElementById('logDomainName')?.value || '';
+        const ref = document.getElementById('logReflectionInput')?.value || '';
+        const box = document.getElementById('aiTakeawayPreviewBox');
+        const takeaway = ref
+          ? `Workers AI (@cf/meta/llama-3.1-8b-instruct) Post-Processed Takeaway for ${course.code} (${dom}): Great hands-on progress on "${ref.slice(0, 70)}". Next drill: verify state via CLI without looking at docs.`
+          : `Workers AI Tip for ${course.code} (${dom}): Pair this study block with a 15-minute verification drill on your 3-node cluster or Azure Cloud Shell.`;
+        if (box) {
+          box.textContent = takeaway;
+          box.classList.remove('hidden');
+        }
+        showToast('Workers AI generated session takeaway', 'ai');
+      });
+
+      document.getElementById('formLogHours')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const courseId = document.getElementById('logCourseId').value;
+        const domain = document.getElementById('logDomainName').value;
+        const activityType = document.getElementById('logActivityType').value;
+        const hours = parseFloat(document.getElementById('logHoursInput').value) || 1.0;
+        const date = document.getElementById('logDateInput').value || '2026-10-15';
+        const reflection = document.getElementById('logReflectionInput').value.trim();
+        const aiBox = document.getElementById('aiTakeawayPreviewBox');
+        const aiTakeaway = (!aiBox.classList.contains('hidden') && aiBox.textContent) ? aiBox.textContent : '';
+
+        state.studyLogs.push({
+          id: 'log-' + Date.now(),
+          courseId,
+          domain,
+          activityType,
+          hours,
+          date,
+          reflection: reflection || `Completed ${hours}h of ${activityType}`,
+          aiTakeaway
+        });
+        document.getElementById('logReflectionInput').value = '';
+        aiBox.classList.add('hidden');
+        saveState();
+        renderAll();
+        showToast(`Added ${hours}h session to your study logbook!`, 'success');
+      });
+
+      document.getElementById('filterChallengeCourse')?.addEventListener('change', renderChallengesView);
+      document.getElementById('filterChallengeStatus')?.addEventListener('change', renderChallengesView);
+
+      document.getElementById('btnAiGenerateLab')?.addEventListener('click', () => {
+        let weakestCourse = state.courses[0];
+        let weakestDomain = weakestCourse.domains[0];
+        state.courses.forEach(c => {
+          c.domains.forEach(d => {
+            if (d.mastery < weakestDomain.mastery) {
+              weakestDomain = d;
+              weakestCourse = c;
+            }
+          });
+        });
+
+        const newId = 'ai-lab-' + Date.now();
+        const generatedLab = {
+          id: newId,
+          courseId: weakestCourse.id,
+          domain: weakestDomain.name,
+          difficulty: `Workers AI Targeted Drill (Current Mastery: ${weakestDomain.mastery}%)`,
+          estMinutes: 30,
+          title: `AI Weak-Spot Drill (${weakestCourse.code}): ${weakestDomain.name} Deep Scenario`,
+          scenario: `Generated by Cloudflare Workers AI (@cf/meta/llama-3.1-8b-instruct) targeting your lowest-scored domain (${weakestDomain.name} at ${weakestDomain.mastery}%). Execute a fault-injection and recovery exercise to raise mastery above 80%.`,
+          environmentNote: weakestCourse.id === 'cka-k8s' ? 'Target: 3-Node Cluster (cp-node-01, worker-node-01, worker-node-02)' : 'Target: Azure Sandbox / Cloud Shell',
+          tasks: [
+            { text: `Audit existing ${weakestDomain.name} configuration and identify single points of failure`, done: false },
+            { text: 'Implement high-availability / zero-trust remediation using imperative CLI commands', done: false },
+            { text: 'Validate recovery metrics and document the command sequence in Smart Notes', done: false }
+          ],
+          cliVerification: weakestCourse.id === 'cka-k8s'
+            ? `kubectl get nodes -o wide\nkubectl get events -A --sort-by='.metadata.creationTimestamp' | tail -n 20`
+            : `az resource list --output table\naz monitor activity-log list --max-events 10 --output table`,
+          sourceTitle: 'Microsoft Learn & Kubernetes Official Docs',
+          sourceUrl: weakestCourse.id === 'cka-k8s'
+            ? 'https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-upgrade/'
+            : 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/az-305',
+          completed: false
+        };
+        state.challenges.unshift(generatedLab);
+        state.selectedChallengeId = newId;
+        saveState();
+        renderAll();
+        showToast(`Workers AI created a custom lab for ${weakestCourse.code}: ${weakestDomain.name}`, 'ai');
+      });
+
+      document.getElementById('notesCourseFilter')?.addEventListener('change', renderNotesView);
+      document.getElementById('notesQuickFilter')?.addEventListener('input', renderNotesView);
+
+      document.getElementById('btnNewNote')?.addEventListener('click', () => {
+        const newNote = {
+          id: 'note-' + Date.now(),
+          courseId: state.courses[0].id,
+          title: 'Untitled Cloud / K8s Study Note',
+          tags: ['october-sprint', 'hands-on'],
+          r2Key: '',
+          r2Name: '',
+          updatedAt: '2026-10-15',
+          content: '### Key Concept\nWrite or paste raw CLI output here, then click **AI Pre-Process** to structure and tag.',
+          aiSummary: 'New note ready for Cloudflare Workers AI pre/post-processing.',
+          aiFlashcards: []
+        };
+        state.notes.unshift(newNote);
+        state.selectedNoteId = newNote.id;
+        saveState();
+        renderNotesView();
+        showToast('Created new study note', 'info');
+      });
+
+      document.getElementById('btnInsertCliTemplate')?.addEventListener('click', () => {
+        const ta = document.getElementById('noteContentInput');
+        if (!ta) return;
+        ta.value += `\n\n\`\`\`bash\n# 3-Node K8s / Azure Verification Snippet\nkubectl get pods -A -o wide\naz account show -o table\n\`\`\``;
+      });
+
+      document.getElementById('noteR2FileInput')?.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const activeNote = state.notes.find(n => n.id === state.selectedNoteId);
+        if (activeNote) {
+          activeNote.r2Key = `r2://study-hub-assets/${activeNote.courseId}/${file.name}`;
+          activeNote.r2Name = `${file.name} (${(file.size / 1024).toFixed(1)} KB in R2)`;
+          saveState();
+          renderNotesView();
+          showToast(`Attached ${file.name} to Cloudflare R2 bucket binding`, 'success');
+        }
+      });
+
+      document.getElementById('btnSaveNote')?.addEventListener('click', () => {
+        const activeNote = state.notes.find(n => n.id === state.selectedNoteId);
+        if (!activeNote) return;
+        activeNote.title = document.getElementById('noteTitleInput').value.trim() || 'Untitled Study Note';
+        activeNote.courseId = document.getElementById('noteCourseSelect').value;
+        activeNote.tags = document.getElementById('noteTagsInput').value.split(',').map(t => t.trim()).filter(Boolean);
+        activeNote.content = document.getElementById('noteContentInput').value;
+        activeNote.updatedAt = '2026-10-15';
+        saveState();
+        renderAll();
+        showToast('Saved note to D1 & updated BGE semantic vector index!', 'success');
+      });
+
+      document.getElementById('btnDeleteNote')?.addEventListener('click', () => {
+        if (state.notes.length <= 1) {
+          showToast('Keep at least one note in your study vault.', 'info');
+          return;
+        }
+        state.notes = state.notes.filter(n => n.id !== state.selectedNoteId);
+        state.selectedNoteId = state.notes[0].id;
+        saveState();
+        renderAll();
+        showToast('Removed note from vault', 'info');
+      });
+
+      document.getElementById('btnAiPreprocessNote')?.addEventListener('click', () => {
+        const activeNote = state.notes.find(n => n.id === state.selectedNoteId);
+        if (!activeNote) return;
+        const raw = document.getElementById('noteContentInput').value.trim();
+        const course = getCourseById(document.getElementById('noteCourseSelect').value);
+
+        if (!raw.includes('### Exam Trap & Verification Checklist')) {
+          document.getElementById('noteContentInput').value = raw + `\n\n### Exam Trap & Verification Checklist (AI Pre-Processed for ${course.code})\n- **Key Command / Check**: Always verify resource state before moving to the next question.\n- **High-Yield Gotcha**: Watch for SKU tier constraints (Standard vs Premium) and namespace/resource-group scope boundaries.`;
+        }
+        const existingTags = document.getElementById('noteTagsInput').value.split(',').map(s => s.trim()).filter(Boolean);
+        if (!existingTags.includes(course.code.toLowerCase())) existingTags.push(course.code.toLowerCase());
+        if (!existingTags.includes('ai-structured')) existingTags.push('ai-structured');
+        document.getElementById('noteTagsInput').value = existingTags.join(', ');
+        activeNote.content = document.getElementById('noteContentInput').value;
+        activeNote.tags = existingTags;
+        activeNote.aiSummary = `Pre-processed via Workers AI (@cf/meta/llama-3.1-8b-instruct) & indexed with 768-dim BGE embeddings for ${course.code}.`;
+        saveState();
+        renderNotesView();
+        showToast('Workers AI Pre-Processor formatted note & extracted tags!', 'ai');
+      });
+
+      document.getElementById('btnAiPostprocessNote')?.addEventListener('click', () => {
+        const activeNote = state.notes.find(n => n.id === state.selectedNoteId);
+        if (!activeNote) return;
+        const title = document.getElementById('noteTitleInput').value || activeNote.title;
+        const course = getCourseById(document.getElementById('noteCourseSelect').value);
+        activeNote.aiSummary = `Active-recall flashcards synthesized from "${title}" (${course.code}).`;
+        activeNote.aiFlashcards = [
+          {
+            q: `[${course.code} Scenario] What is the fastest CLI command to verify "${title.slice(0, 40)}" under exam time pressure?`,
+            a: course.id === 'cka-k8s'
+              ? 'Use `kubectl get/describe` with `-o wide` or `--dry-run=client -o yaml` and verify static manifests in `/etc/kubernetes/manifests`.'
+              : 'Use `az resource list` / `az network` with `--query` filters and verify Policy/RBAC inheritance at the Resource Group scope.'
+          },
+          {
+            q: `[${course.code} Exam Trap] Which common misconfiguration breaks this scenario in production or simulator tests?`,
+            a: course.id === 'cka-k8s'
+              ? 'Forgetting namespace flags (`-n`), mismatched label selectors, or not restarting kubelet after systemd unit edits.'
+              : 'Selecting a Basic/Standard SKU when Zone Redundancy, TLS inspection, or Private Link requires Premium/Standard v2.'
+          }
+        ];
+        saveState();
+        renderNotesView();
+        showToast('Workers AI Post-Processor generated active-recall flashcards!', 'ai');
+      });
+
+      document.getElementById('btnRunAiReadinessAudit')?.addEventListener('click', () => {
+        const card = document.getElementById('aiAuditResultCard');
+        if (!card) return;
+        const az104Ready = getCourseReadiness(getCourseById('az-104'));
+        const az305Ready = getCourseReadiness(getCourseById('az-305'));
+        const ckaReady = getCourseReadiness(getCourseById('cka-k8s'));
+
+        card.classList.remove('hidden');
+        card.innerHTML = `
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Cloudflare Workers AI Readiness Verdict (Oct 15, 2026)</span>
+            </span>
+            <span class="text-[11px] font-mono text-slate-400">Model: @cf/meta/llama-3.1-8b-instruct</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+            <div class="rounded-xl bg-slate-950 border border-slate-800 p-3">
+              <div class="font-bold text-sky-300">1. AZ-104 Readiness: ${az104Ready}%</div>
+              <p class="text-slate-300 mt-1">Strong in Entra ID &amp; Storage. Focus next 4 hours on <strong>Lab 04 Hub-Spoke VNet Peering &amp; Private DNS</strong> to clear the 700/1000 bar safely by Oct 24.</p>
+            </div>
+            <div class="rounded-xl bg-slate-950 border border-slate-800 p-3">
+              <div class="font-bold text-indigo-300">2. AZ-305 Readiness: ${az305Ready}%</div>
+              <p class="text-slate-300 mt-1">Prioritize <strong>Business Continuity (RPO/RTO matrices for SQL Auto-Failover vs Cosmos DB consistency)</strong> and complete the Fabrikam Case Study.</p>
+            </div>
+            <div class="rounded-xl bg-slate-950 border border-slate-800 p-3">
+              <div class="font-bold text-emerald-300">3. CKA (3-Node Cluster): ${ckaReady}%</div>
+              <p class="text-slate-300 mt-1">Run <strong>Lab 01 (etcd snapshot restore)</strong> and <strong>Lab 03 (broken worker-node-02 kubelet fix)</strong> twice on your 3-node cluster until under 7 minutes each.</p>
+            </div>
+          </div>
+        `;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        showToast('Workers AI Readiness Audit completed!', 'ai');
+      });
+
+      document.getElementById('formMockExam')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const courseId = document.getElementById('mockCourseSelect').value;
+        const provider = document.getElementById('mockProviderInput').value.trim();
+        const scorePct = parseInt(document.getElementById('mockPctInput').value, 10) || 75;
+        const rawScore = document.getElementById('mockRawInput').value.trim();
+        const weakDomain = document.getElementById('mockWeakInput').value.trim() || 'General Review';
+
+        state.mockExams.push({
+          id: 'mock-' + Date.now(),
+          courseId,
+          provider,
+          scorePct,
+          rawScore,
+          weakDomain,
+          date: '2026-10-15'
+        });
+        document.getElementById('mockProviderInput').value = '';
+        document.getElementById('mockWeakInput').value = '';
+        saveState();
+        renderAll();
+        showToast(`Logged ${scorePct}% mock exam score!`, 'success');
+      });
+
+      document.getElementById('globalSearchInput')?.addEventListener('input', renderSearchView);
+      document.querySelectorAll('.search-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const term = btn.getAttribute('data-search-pill');
+          const inp = document.getElementById('globalSearchInput');
+          if (inp) {
+            inp.value = term;
+            renderSearchView();
+          }
+        });
+      });
+
+      document.getElementById('btnAiSemanticAnswer')?.addEventListener('click', () => {
+        const q = document.getElementById('globalSearchInput')?.value.trim() || 'etcd snapshot & VNet peering';
+        const box = document.getElementById('aiSearchAnswerBox');
+        if (box) {
+          box.classList.remove('hidden');
+          box.innerHTML = `
+            <div class="font-bold text-sky-300 flex items-center justify-between">
+              <span>⚡ Cloudflare Workers AI Semantic Synthesis for "${escapeHtml(q)}"</span>
+              <span class="font-mono text-[10px] text-slate-400">@cf/baai/bge-base-en-v1.5 + llama-3.1-8b</span>
+            </div>
+            <p class="text-slate-200 leading-relaxed">
+              Matched across your D1 notes, 3-node K8s labs, and official Microsoft Learn / Kubernetes.io docs: verify exact CLI flags in the matching cards below and test on your 3-node cluster or Azure sandbox before marking complete.
+            </p>
+          `;
+        }
+        showToast('Workers AI synthesized answer across notes & docs', 'ai');
+      });
+
+      document.querySelectorAll('.cf-code-tab').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeCfTab = btn.getAttribute('data-cf-file');
+          document.querySelectorAll('.cf-code-tab').forEach(b => {
+            const active = b.getAttribute('data-cf-file') === activeCfTab;
+            b.className = active
+              ? 'cf-code-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30'
+              : 'cf-code-tab px-3 py-1.5 rounded-lg text-xs font-mono font-semibold text-slate-400 hover:text-white';
+          });
+          renderCloudflareView();
+        });
+      });
+
+      document.getElementById('btnCopyCfCode')?.addEventListener('click', () => {
+        copyTextToClipboard(CF_FILES[activeCfTab] || '', `Copied ${activeCfTab} code to clipboard`);
+      });
+
+      document.getElementById('btnTestEdgeBindings')?.addEventListener('click', async () => {
+        try {
+          const apiPath = ['', 'api', 'health'].join('/'); const res = window.location.protocol === 'https:' ? await fetch(apiPath) : { ok: false };
+          if (res.ok) {
+            showToast('Cloudflare Pages Function D1 + R2 + Workers AI bindings LIVE!', 'success');
+            return;
+          }
+        } catch (e) {
+          // Running in local/Canvas mode
+        }
+        showToast('Canvas Preview Mode Active: D1/R2/AI calls persisted locally & ready for Wrangler deploy!', 'ai');
+      });
+
+      document.getElementById('btnExportStateJson')?.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'cloudflare-d1-study-hub-backup.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Downloaded D1 JSON backup file', 'success');
+      });
+
+      const modalCourse = document.getElementById('modalAddCourse');
+      ['btnOpenAddCourse', 'btnOverviewAddCourse', 'btnProgressAddCourse'].forEach(id => {
+        document.getElementById(id)?.addEventListener('click', () => modalCourse?.classList.remove('hidden'));
+      });
+      ['btnCloseCourseModal', 'btnCancelCourseModal'].forEach(id => {
+        document.getElementById(id)?.addEventListener('click', () => modalCourse?.classList.add('hidden'));
+      });
+
+      document.getElementById('formAddCourse')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const code = document.getElementById('newCourseCode').value.trim().toUpperCase();
+        const provider = document.getElementById('newCourseProvider').value.trim();
+        const title = document.getElementById('newCourseTitle').value.trim();
+        const targetDate = document.getElementById('newCourseDate').value;
+        const targetHours = parseFloat(document.getElementById('newCourseHours').value) || 35;
+        const color = document.getElementById('newCourseColor').value;
+        const rawDomains = document.getElementById('newCourseDomains').value.split(',').map(s => s.trim()).filter(Boolean);
+
+        const domains = rawDomains.map(d => {
+          const m = d.match(/^(.*?)\s*\((\d+)%\)$/);
+          return m ? { name: m[1].trim(), weight: parseInt(m[2], 10), mastery: 60 } : { name: d, weight: 25, mastery: 60 };
+        });
+
+        const newCourse = {
+          id: code.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-3),
+          code,
+          title,
+          provider,
+          color,
+          targetDate,
+          targetHours,
+          passingScore: '700 / 1000',
+          domains: domains.length ? domains : [{ name: 'Core Objectives & Labs', weight: 100, mastery: 60 }]
+        };
+        state.courses.push(newCourse);
+        modalCourse?.classList.add('hidden');
+        saveState();
+        renderAll();
+        showToast(`Provisioned course ${code} (${title}) into D1!`, 'success');
+      });
+
+      const modalDec = document.getElementById('modalAddDecision');
+      document.getElementById('btnAddDecisionModal')?.addEventListener('click', () => modalDec?.classList.remove('hidden'));
+      ['btnCloseDecisionModal', 'btnCancelDecisionModal'].forEach(id => {
+        document.getElementById(id)?.addEventListener('click', () => modalDec?.classList.add('hidden'));
+      });
+
+      document.getElementById('formAddDecision')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        state.decisions.push({
+          id: 'dec-' + Date.now(),
+          title: document.getElementById('decisionTitleInput').value.trim(),
+          rationale: document.getElementById('decisionRationaleInput').value.trim(),
+          courseId: document.getElementById('decisionCourseSelect').value,
+          targetDate: document.getElementById('decisionDateInput').value,
+          completed: false
+        });
+        document.getElementById('decisionTitleInput').value = '';
+        document.getElementById('decisionRationaleInput').value = '';
+        modalDec?.classList.add('hidden');
+        saveState();
+        renderAll();
+        showToast('Locked new study decision in your Command Charter!', 'success');
+      });
+
+      const modalLab = document.getElementById('modalAddChallenge');
+      document.getElementById('btnOpenCustomLabModal')?.addEventListener('click', () => modalLab?.classList.remove('hidden'));
+      ['btnCloseChallengeModal', 'btnCancelChallengeModal'].forEach(id => {
+        document.getElementById(id)?.addEventListener('click', () => modalLab?.classList.add('hidden'));
+      });
+
+      document.getElementById('formAddChallenge')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const courseId = document.getElementById('customLabCourse').value;
+        const domain = document.getElementById('customLabDomain').value.trim();
+        const title = document.getElementById('customLabTitle').value.trim();
+        const scenario = document.getElementById('customLabScenario').value.trim();
+        const tasksLines = document.getElementById('customLabTasks').value.split('\n').map(s => s.trim()).filter(Boolean);
+        const cliVerification = document.getElementById('customLabCli').value.trim();
+
+        const newLab = {
+          id: 'custom-lab-' + Date.now(),
+          courseId,
+          domain,
+          difficulty: 'Custom Hands-On Exercise',
+          estMinutes: 35,
+          title,
+          scenario,
+          environmentNote: courseId === 'cka-k8s' ? 'Target: 3-Node K8s Cluster' : 'Target: Azure Sandbox',
+          tasks: tasksLines.map(t => ({ text: t, done: false })),
+          cliVerification,
+          sourceTitle: 'Custom Study Lab',
+          sourceUrl: 'https://kubernetes.io/docs/home/',
+          completed: false
+        };
+        state.challenges.unshift(newLab);
+        state.selectedChallengeId = newLab.id;
+        modalLab?.classList.add('hidden');
+        saveState();
+        renderAll();
+        showToast('Added custom hands-on exercise!', 'success');
+      });
+
+      document.body.addEventListener('click', (e) => {
+        const gotoBtn = e.target.closest('[data-goto]');
+        if (gotoBtn) {
+          switchNav(gotoBtn.getAttribute('data-goto'));
+          return;
+        }
+
+        const decToggle = e.target.closest('[data-toggle-decision]');
+        if (decToggle) {
+          const id = decToggle.getAttribute('data-toggle-decision');
+          const d = state.decisions.find(x => x.id === id);
+          if (d) {
+            d.completed = !d.completed;
+            saveState();
+            renderOverview();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+          return;
+        }
+
+        const decDel = e.target.closest('[data-delete-decision]');
+        if (decDel) {
+          const id = decDel.getAttribute('data-delete-decision');
+          state.decisions = state.decisions.filter(x => x.id !== id);
+          saveState();
+          renderOverview();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          return;
+        }
+
+        const jumpLabs = e.target.closest('[data-course-jump-labs]');
+        if (jumpLabs) {
+          const cId = jumpLabs.getAttribute('data-course-jump-labs');
+          const sel = document.getElementById('filterChallengeCourse');
+          if (sel) sel.value = cId;
+          const firstMatch = state.challenges.find(ch => ch.courseId === cId);
+          if (firstMatch) state.selectedChallengeId = firstMatch.id;
+          switchNav('challenges');
+          return;
+        }
+
+        const jumpHours = e.target.closest('[data-course-jump-hours]');
+        if (jumpHours) {
+          const cId = jumpHours.getAttribute('data-course-jump-hours');
+          switchNav('hours');
+          const sel = document.getElementById('logCourseId');
+          if (sel) {
+            sel.value = cId;
+            updateLogDomainsDropdown();
+          }
+          return;
+        }
+
+        const delLog = e.target.closest('[data-delete-log]');
+        if (delLog) {
+          const id = delLog.getAttribute('data-delete-log');
+          state.studyLogs = state.studyLogs.filter(l => l.id !== id);
+          saveState();
+          renderAll();
+          showToast('Deleted session log entry', 'info');
+          return;
+        }
+
+        const selChal = e.target.closest('[data-select-challenge]');
+        if (selChal) {
+          state.selectedChallengeId = selChal.getAttribute('data-select-challenge');
+          saveState();
+          renderChallengesView();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          return;
+        }
+
+        const compChal = e.target.closest('[data-toggle-challenge-complete]');
+        if (compChal) {
+          const id = compChal.getAttribute('data-toggle-challenge-complete');
+          const ch = state.challenges.find(c => c.id === id);
+          if (ch) {
+            ch.completed = !ch.completed;
+            ch.tasks.forEach(t => { t.done = ch.completed; });
+            if (ch.completed) {
+              const hrs = Number((ch.estMinutes / 60).toFixed(2));
+              state.studyLogs.push({
+                id: 'log-' + Date.now(),
+                courseId: ch.courseId,
+                domain: ch.domain,
+                activityType: 'Hands-On Lab (3-Node K8s / Azure Portal)',
+                hours: hrs,
+                date: '2026-10-15',
+                reflection: `Completed hands-on lab: ${ch.title}`,
+                aiTakeaway: 'Verified via CLI checklist.'
+              });
+              showToast(`Lab marked complete & +${hrs}h auto-logged!`, 'success');
+            }
+            saveState();
+            renderAll();
+          }
+          return;
+        }
+
+        const copyChalCli = e.target.closest('[data-copy-challenge-cli]');
+        if (copyChalCli) {
+          const id = copyChalCli.getAttribute('data-copy-challenge-cli');
+          const ch = state.challenges.find(c => c.id === id);
+          if (ch) copyTextToClipboard(ch.cliVerification, 'Copied lab CLI verification commands');
+          return;
+        }
+
+        const labToNote = e.target.closest('[data-lab-to-note]');
+        if (labToNote) {
+          const id = labToNote.getAttribute('data-lab-to-note');
+          const ch = state.challenges.find(c => c.id === id);
+          if (ch) {
+            const newNote = {
+              id: 'note-' + Date.now(),
+              courseId: ch.courseId,
+              title: `Lab Notes: ${ch.title}`,
+              tags: ['hands-on-lab', ch.courseId],
+              r2Key: '',
+              r2Name: '',
+              updatedAt: '2026-10-15',
+              content: `### Scenario\n${ch.scenario}\n\n### Verification CLI\n\`\`\`bash\n${ch.cliVerification}\n\`\`\`\n\nSource: [${ch.sourceTitle}](${ch.sourceUrl})`,
+              aiSummary: `Exported from hands-on lab "${ch.title}".`,
+              aiFlashcards: []
+            };
+            state.notes.unshift(newNote);
+            state.selectedNoteId = newNote.id;
+            saveState();
+            switchNav('notes');
+            showToast('Lab sent to Smart Notes editor!', 'success');
+          }
+          return;
+        }
+
+        const selNote = e.target.closest('[data-select-note]');
+        if (selNote) {
+          state.selectedNoteId = selNote.getAttribute('data-select-note');
+          saveState();
+          renderNotesView();
+          if (typeof lucide !== 'undefined') lucide.createIcons();
+          return;
+        }
+
+        const searchNote = e.target.closest('[data-open-search-note]');
+        if (searchNote) {
+          state.selectedNoteId = searchNote.getAttribute('data-open-search-note');
+          switchNav('notes');
+          return;
+        }
+
+        const searchLab = e.target.closest('[data-open-search-lab]');
+        if (searchLab) {
+          state.selectedChallengeId = searchLab.getAttribute('data-open-search-lab');
+          switchNav('challenges');
+          return;
+        }
+      });
+
+      document.body.addEventListener('change', (e) => {
+        const taskCb = e.target.closest('[data-challenge-task]');
+        if (taskCb) {
+          const chId = taskCb.getAttribute('data-challenge-task');
+          const idx = parseInt(taskCb.getAttribute('data-task-idx'), 10);
+          const ch = state.challenges.find(c => c.id === chId);
+          if (ch && ch.tasks[idx]) {
+            ch.tasks[idx].done = taskCb.checked;
+            ch.completed = ch.tasks.every(t => t.done);
+            saveState();
+            renderChallengesView();
+            renderOverview();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+          return;
+        }
+
+        const domSlider = e.target.closest('[data-domain-slider]');
+        if (domSlider) {
+          const cId = domSlider.getAttribute('data-domain-slider');
+          const idx = parseInt(domSlider.getAttribute('data-domain-idx'), 10);
+          const course = getCourseById(cId);
+          if (course && course.domains[idx]) {
+            course.domains[idx].mastery = parseInt(domSlider.value, 10) || 65;
+            saveState();
+            renderProgressView();
+            renderOverview();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>

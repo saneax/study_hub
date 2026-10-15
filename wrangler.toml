@@ -1,0 +1,19 @@
+name = "azure-cka-study-hub"
+pages_build_output_dir = "public"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# 1. Cloudflare D1 Serverless SQL Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "study_command_center_db"
+database_id = "00000000-0000-0000-0000-000000000000" # Replace with output from: npx wrangler d1 create study_command_center_db
+
+# 2. Cloudflare R2 Object Storage Binding (for diagrams, kubeconfigs, cheat sheets, lab artifacts)
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "study-hub-assets"
+
+# 3. Cloudflare Workers AI Binding (for Note Pre/Post-Processing, Semantic Search & Readiness Evaluation)
+[ai]
+binding = "AI"
